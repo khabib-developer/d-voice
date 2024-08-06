@@ -3,9 +3,9 @@ import { Inter as FontSans } from "next/font/google";
 
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
-import { Header } from "@/layout/header";
-import { Theme } from "@radix-ui/themes";
 import { ThemeProvider } from "next-themes";
+import { Header } from "@/layout/header";
+import { Footer } from "@/layout/footer";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -26,13 +26,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           fontSans.variable
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          // defaultTheme="black"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Header />
+        <ThemeProvider attribute="class" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
       </body>
