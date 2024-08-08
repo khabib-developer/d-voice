@@ -31,33 +31,33 @@ async function* streamingFetch(text) {
 `;
 
 const ReceivingResponseChunks = `
-    for await (let chunk of streamingFetch(text)) {
-        console.log(chunk) // Uint8Array
-    }
+for await (let chunk of streamingFetch(text)) {
+    console.log(chunk) // Uint8Array
+}
 `;
 
 const concatenateUint8Array = `
-    /**
-     * Concatenates an array of Uint8Array instances into a single Uint8Array.
-     *
-     * @param {Uint8Array[]} arrays - An array of Uint8Array instances to concatenate.
-     * @returns {Uint8Array} A new Uint8Array containing the concatenated data from the input arrays.
-     */
-    function concatenateUint8Arrays(arrays) {
-      let totalLength = 0;
-      for (const arr of arrays) {
-        totalLength += arr.length;
-      }
+/**
+ * Concatenates an array of Uint8Array instances into a single Uint8Array.
+ *
+ * @param {Uint8Array[]} arrays - An array of Uint8Array instances to concatenate.
+ * @returns {Uint8Array} A new Uint8Array containing the concatenated data from the input arrays.
+ */
+function concatenateUint8Arrays(arrays) {
+  let totalLength = 0;
+  for (const arr of arrays) {
+    totalLength += arr.length;
+  }
 
-      const concatenatedArray = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const arr of arrays) {
-        concatenatedArray.set(arr, offset);
-        offset += arr.length;
-      }
+  const concatenatedArray = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const arr of arrays) {
+    concatenatedArray.set(arr, offset);
+    offset += arr.length;
+  }
 
-      return concatenatedArray;
-    }`;
+  return concatenatedArray;
+}`;
 
 const sliceEachWavData = `
   /**
