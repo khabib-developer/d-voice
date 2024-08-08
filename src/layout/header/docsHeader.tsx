@@ -1,3 +1,4 @@
+import { LanguageMenu } from "@/components/languageMenu";
 import { Routes } from "@/z_shared/constants";
 import { Input } from "@/z_shared/ui/Input";
 import Link from "next/link";
@@ -30,6 +31,7 @@ export const DocsHeader = () => {
               <CiSearch />
             </div>
           </div>
+          <LanguageMenu />
         </div>
       </div>
     </div>
