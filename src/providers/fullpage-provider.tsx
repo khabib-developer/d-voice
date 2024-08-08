@@ -1,5 +1,5 @@
 "use client";
-import { smoothScrollTo, stopScrolling } from "@/z_shared/utils";
+import { stopScrolling } from "@/z_shared/utils";
 import React, { useEffect, useRef } from "react";
 
 const FullPageScroll = ({ children }: { children: React.ReactNode }) => {

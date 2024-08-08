@@ -7,7 +7,7 @@ export const IntroductionPage = () => {
       <p className="text-lg mb-4">
         Our Text-to-Speech (TTS) and Speech-to-Text (STT) services provide
         powerful and flexible solutions to convert text into natural-sounding
-        speech and speech into accurate text. Whether you're building
+        speech and speech into accurate text. Whether you are building
         accessibility features, virtual assistants, or any application requiring
         voice interaction, our services offer high-quality, reliable, and
         scalable options to meet your needs.
@@ -37,7 +37,7 @@ export const IntroductionPage = () => {
       <p className="text-lg mb-4">
         Explore the documentation to learn more about integrating our TTS and
         STT services into your applications. From API references to code
-        examples, you'll find everything you need to get started.
+        examples, you will find everything you need to get started.
       </p>
       <p className="text-lg">
         Thank you for choosing our TTS and STT services. We look forward to
