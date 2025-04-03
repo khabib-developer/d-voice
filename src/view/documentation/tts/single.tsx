@@ -23,12 +23,6 @@ async function send(text) {
 }
 `;
 
-const curlSnippet = `curl -X POST https://oyqiz.airi.uz/api/v1/tts \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "text": "O'zbek tilidagi matn"
-  }'`;
-
 export const SinglePage = () => {
   return (
     <div className="flex flex-col pt-12  pb-12 px-4 max-w-4xl mx-auto">
