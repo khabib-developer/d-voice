@@ -14,6 +14,7 @@ export const FAQs = () => {
       <Accordion type="multiple">
         {Array.from({ length: 6 }, (_, i) => i + 1).map((index) => (
           <AccordionItem
+            key={index}
             value={"item-" + index}
             className="pb-3 dark:!border-zinc-800"
           >
