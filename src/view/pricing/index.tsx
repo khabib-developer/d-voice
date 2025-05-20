@@ -1,24 +1,37 @@
 "use client";
-import { Routes } from "@/z_shared/constants";
+import { ModelNames, Tariff } from "@/z_shared/types";
 import { Button } from "@/z_shared/ui/Buttons";
-import { useRouter } from "next/navigation";
+import { Card, CardContent, CardFooter } from "@/z_shared/ui/ui/card";
+import { Tariffs } from "./tariffs";
+import { Models } from "./models";
+import { useTranslations } from "next-intl";
 
-export const PricingPage = () => {
-  const router = useRouter();
-  const handleClick = () => router.push(Routes.contact);
+type props = {
+  tariffs: Tariff[];
+  models: ModelNames[];
+};
+export const PricingPage = (props: props) => {
+  const t = useTranslations("pricing");
   return (
-    <div className="flex justify-center ">
-      <div className="w-6/12 mt-[168px]">
-        <h2 className="text-6xl text-center">Pricing</h2>
-        <p className=" text-center text-2xl pt-5">Currently it is free</p>
-        <Button
-          onClick={handleClick}
-          className="dark:bg-white m-auto mt-12 dark:text-neutral-950 rounded-3xl flex justify-center items-center gap-2"
-        >
-          Contact sales
-        </Button>
+    <div className="bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 py-16 px-4 sm:px-6 lg:px-8 pt-[108px]">
+      <div className="container py-10">
+        <h1 className="text-3xl font-bold mb-6">{t("title")}</h1>
+
+        <p className="text-zinc-600 dark:text-zinc-400 mb-8">
+          {t("desc-1")}{" "}
+          <a
+            href="/explanation"
+            className="text-blue-600 hover:underline font-medium"
+          >
+            {t("link")}
+          </a>{" "}
+          {t("desc-2")}
+        </p>
+
+        <Tariffs tariffs={props.tariffs} />
+
+        <Models models={props.models} />
       </div>
-      <div></div>
     </div>
   );
 };

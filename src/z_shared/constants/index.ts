@@ -16,6 +16,25 @@ export enum Routes {
   docssttlong = "/docs/stt/long",
   //--------------------------------------------------------page routes-------------------------------------------------------------//
   pricing = "/pricing",
+  explanataion = "/explanataion",
   contact = "/contact",
-  terms = "terms",
+  terms = "/terms",
+  privacy = "/privacy",
 }
+
+//-------------------------------------------------------- language -------------------------------------------------------------//
+
+export enum language {
+  uz = "uz",
+  ru = "ru",
+  en = "en",
+}
+
+//-------------------------------------------------------- theme -------------------------------------------------------------//
+
+export enum theme {
+  dark = "dark",
+  light = "light",
+}
+
+export const defaultText = `Assalomu alaykum! Siz matndan nutqqa xizmatidan foydalanmoqdasiz. Bu tizim yozilgan matnni ovozga aylantiradi. Iltimos, o‘z matningizni quyidagi maydonga kiriting va tinglash tugmasini bosing.`;

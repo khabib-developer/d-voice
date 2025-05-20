@@ -1,34 +1,41 @@
 import "./globals.css";
 import { Inter as FontSans } from "next/font/google";
-
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
-import { Header } from "@/layout/header";
-import { Footer } from "@/layout/footer";
-
+import { RootLayoutProps } from "@/z_shared/types";
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
-interface RootLayoutProps {
-  children: ReactNode;
-}
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const locale = await getLocale();
 
-export default function RootLayout({ children }: RootLayoutProps) {
+  const messages = await getMessages();
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head />
+    <html lang={locale} suppressHydrationWarning>
+      <head>
+        <title>Dvoice</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased ",
+          "bg-background font-sans antialiased ",
           fontSans.variable
         )}
       >
-        <ThemeProvider attribute="class" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

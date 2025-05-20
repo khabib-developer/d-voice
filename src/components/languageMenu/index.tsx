@@ -1,38 +1,32 @@
-import { Button } from "@/z_shared/ui/Buttons";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/z_shared/ui/HoverCard";
-import Link from "next/link";
-import { IoLanguage } from "react-icons/io5";
+"use client";
 
+import { language } from "@/z_shared/constants";
+import { useEffect, useState } from "react";
+import { setUserLocale } from "@/i18n/service";
+import { Locale } from "@/i18n/config";
+import { useLocale } from "next-intl";
+import { ToggleGroup, ToggleGroupItem } from "@/z_shared/ui/toggle-group";
 export const LanguageMenu = () => {
+  const [mounted, setMounted] = useState(false);
+  const locale = useLocale();
+
+  // When mounted on client, we can safely read resolvedTheme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) return null;
   return (
-    <HoverCard>
-      <HoverCardTrigger asChild>
-        <Button className="px-0">
-          <div className="flex items-center text-gray-400 gap-2">
-            <IoLanguage />
-            <span className="pl-2">Language</span>
-          </div>
-        </Button>
-      </HoverCardTrigger>
-      <HoverCardContent className="">
-        <ul className="[&>li]:mt-2 list-none">
-          <li className="text-gray-400">
-            <Link href="/" className="">
-              Uzbek
-            </Link>
-          </li>
-          <li className="text-gray-400">
-            <Link href="/">Russian</Link>
-          </li>
-          <li>
-            <Link href="/">English</Link>
-          </li>
-        </ul>
-      </HoverCardContent>
-    </HoverCard>
+    <ToggleGroup onSelect={(e) => console.log(e)} type="single" size="sm">
+      {Object.keys(language).map((l) => (
+        <ToggleGroupItem
+          className={`${locale === l ? "dark:bg-zinc-800 bg-zinc-300" : ""}`}
+          key={l}
+          value={l}
+          onClick={() => setUserLocale(l as Locale)}
+        >
+          {l}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 };

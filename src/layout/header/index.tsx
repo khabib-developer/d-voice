@@ -6,77 +6,70 @@ import {
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  navigationMenuTriggerStyle,
 } from "@/z_shared/ui/Navigation";
 import { Logo } from "@/z_shared/icons";
-import { AiOutlineLogin } from "react-icons/ai";
 import { Routes } from "@/z_shared/constants";
-import { LanguageMenu } from "@/components/languageMenu";
 import { useLinkHook } from "@/z_shared/hooks/link.hook";
+import { Button } from "@/z_shared/ui/Buttons";
+import { useLocale, useTranslations } from "next-intl";
+import { navigateToProfileDvoice } from "@/z_shared/utils";
 
 export function Header() {
   const { passiveLink } = useLinkHook();
+  const t = useTranslations("header");
+  const locale = useLocale();
 
   return (
-    <div className="w-full fixed z-50 header">
+    <div className="w-full fixed z-50 backdrop-blur-md shadow-lg dark:shadow-zinc-900">
       <div className="container flex justify-between h-[60px] items-center">
-        <Link href={Routes.home} className="h-fit">
+        <Link
+          href={Routes.home}
+          className="h-fit flex flex-1 items-center gap-2"
+        >
           <Logo />
+          <span className="text-lg font-bold font-quicksand">DVoice</span>
         </Link>
-        <NavigationMenu>
-          <NavigationMenuList className="gap-2">
+        <NavigationMenu className=" flex-1">
+          <NavigationMenuList className="gap-6">
             <NavigationMenuItem>
               <Link href={Routes.home} legacyBehavior passHref>
-                <NavigationMenuLink
-                  className={`${navigationMenuTriggerStyle()} ${passiveLink(
-                    Routes.home,
-                    true
-                  )} `}
-                >
-                  Home
+                <NavigationMenuLink className={passiveLink(Routes.home, true)}>
+                  {t("home")}
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <Link href={Routes.docs} legacyBehavior passHref>
-                <NavigationMenuLink
-                  className={`${navigationMenuTriggerStyle()} ${passiveLink(
-                    Routes.docs
-                  )} `}
-                >
-                  Documentation
-                </NavigationMenuLink>
-              </Link>
+              <a
+                href={`${process.env
+                  .NEXT_PUBLIC_DOCS_DVOICE!}${locale}/docs/1-index`}
+                target="_blank"
+              >
+                {t("documentation")}
+              </a>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href={Routes.pricing} legacyBehavior passHref>
-                <NavigationMenuLink
-                  className={`${navigationMenuTriggerStyle()} ${passiveLink(
-                    Routes.pricing
-                  )} `}
-                >
-                  Pricing
+                <NavigationMenuLink className={passiveLink(Routes.pricing)}>
+                  {t("pricing")}
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <Link href={Routes.contact} legacyBehavior passHref>
-                <NavigationMenuLink
-                  className={`${navigationMenuTriggerStyle()} ${passiveLink(
-                    Routes.contact
-                  )} `}
-                >
-                  Contact
+                <NavigationMenuLink className={passiveLink(Routes.contact)}>
+                  {t("contact")}
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
-            <NavigationMenuItem>
-              <LanguageMenu />
-            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
-        <div>
-          <AiOutlineLogin className="w-[22px] h-[22px]" />
+        <div className="flex justify-end flex-1 items-center gap-2">
+          <Button
+            onClick={navigateToProfileDvoice}
+            className="rounded-3xl !h-7 bg-black text-white dark:bg-white dark:text-black"
+          >
+            {t("app")}
+          </Button>
         </div>
       </div>
     </div>

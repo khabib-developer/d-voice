@@ -11,20 +11,29 @@ import {
 } from "@/z_shared/ui/Form";
 import { Input } from "@/z_shared/ui/Input";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  createTranslator,
+  Messages,
+  NestedKeyOf,
+  useTranslations,
+} from "next-intl";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 // Define the schema using zod
-const formSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().optional(),
-});
+const formSchema = (t: ReturnType<typeof createTranslator<Messages>>) =>
+  z.object({
+    name: z.string().min(2, t("errorName")),
+    email: z.string().email(t("errorEmail")),
+    phone: z.string().optional(),
+  });
 
 export function ContactForm() {
+  const t = useTranslations("contact");
   // Initialize the form with react-hook-form and zodResolver
   const form = useForm({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema(t)),
     defaultValues: {
       name: "",
       email: "",
@@ -32,8 +41,17 @@ export function ContactForm() {
     },
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
+  const [sent, setSent] = useState(false);
+
+  const onSubmit = async (data: any) => {
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    console.log(result);
+    setSent(true);
   };
 
   return (
@@ -43,10 +61,10 @@ export function ContactForm() {
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl className="!mb-3">
-                <Input placeholder="Name" {...field} />
+            <FormItem className="!mb-3">
+              <FormLabel>{t("name")}</FormLabel>
+              <FormControl>
+                <Input placeholder={t("name")} {...field} />
               </FormControl>
               <FormMessage className="text-red-500" />
             </FormItem>
@@ -56,10 +74,10 @@ export function ContactForm() {
           control={form.control}
           name="email"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl className="!mb-3">
-                <Input placeholder="Email" {...field} />
+            <FormItem className="!mb-3">
+              <FormLabel>{t("email")}</FormLabel>
+              <FormControl>
+                <Input placeholder={t("email")} {...field} />
               </FormControl>
               <FormMessage className="text-red-500" />
             </FormItem>
@@ -70,19 +88,22 @@ export function ContactForm() {
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone</FormLabel>
+              <FormLabel>{t("phone")}</FormLabel>
               <FormControl>
-                <Input placeholder="Phone" {...field} />
+                <Input placeholder={t("phone")} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <Button
-          className="dark:bg-white w-full dark:text-neutral-950 rounded-3xl mt-5"
+          className={`dark:bg-white w-full dark:text-neutral-950 bg-black text-white rounded-3xl mt-5 ${
+            sent ? "!bg-green-500" : ""
+          }`}
           type="submit"
+          disabled={sent}
         >
-          Submit
+          {sent ? t("sent") : t("submit")}
         </Button>
       </form>
     </Form>

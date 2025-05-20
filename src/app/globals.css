@@ -1,22 +1,45 @@
+@import url("https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,300..800;1,300..800&family=Quicksand:wght@300..700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background-color: #ffffff;
-  --text-color: #000000;
-  /* Add more light mode variables here */
+@layer base {
+  :root {
+    --background-color: #ffffff;
+    --text-color: #000000;
+  }
+
+  .dark {
+    --background-color: #000000;
+    --text-color: #ffffff;
+  }
+
+  body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: "Quicksand", sans-serif;
+  }
+
+  input {
+    outline: none !important;
+  }
 }
 
-.dark {
-  --background-color: #000000;
-  --text-color: #ffffff;
-  /* Add more dark mode variables here */
-}
-
-body {
-  background-color: var(--background-color);
-  color: var(--text-color);
+.get-started:before {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 100%;
+  background-image: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0) 70%
+  );
+  top: 0;
+  left: -100px;
+  animation: shine 3s infinite linear;
 }
 
 .header {
@@ -33,6 +56,19 @@ body {
   -moz-box-shadow: 1px -19px 24px 2px rgba(0, 0, 0, 0.94);
 }
 
-input {
-  outline: none !important;
+@keyframes shine {
+  0% {
+    left: -100px;
+  }
+  20% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.custom-radial-bg {
+  background-image: url("/gradient (1).svg");
+  background-size: cover;
 }
