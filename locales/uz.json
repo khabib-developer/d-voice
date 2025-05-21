@@ -140,5 +140,10 @@
     "errorName": "Ism majburiy",
     "errorEmail": "Noto‘g‘ri elektron pochta manzili",
     "sent": "Yuborildi"
+  },
+  "limit": {
+    "title": "So‘rovlar chegarasiga yetdi",
+    "desc": "Siz anonim so‘rovlar uchun chegaraga yetdingiz. Cheklovlarsiz xizmatdan foydalanishni davom ettirish uchun akkountga kiring.",
+    "login": "Kirish"
   }
 }

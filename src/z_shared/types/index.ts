@@ -23,6 +23,9 @@ export interface ITTSStore {
   requested: boolean;
   reader: ReadableStreamDefaultReader<Uint8Array<ArrayBufferLike>> | null;
 
+  limit: boolean;
+  setLimit: (limit: boolean) => void;
+
   recaptchaToken: string | null;
   setRecaptchaToken: (token: string) => void;
 

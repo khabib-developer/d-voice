@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { GrFormNext } from "react-icons/gr";
 import { BackgroundAnimation } from "./animation";
 import { navigateToProfileDvoice } from "@/z_shared/utils";
+import { LimitModal } from "@/components/limitModal";
 
 type props = {
   models: string[];
@@ -32,6 +33,7 @@ export const Example = (props: props) => {
           <TTSDemo models={props.models} />
         </div>
       </div>
+      <LimitModal />
     </div>
   );
 };

@@ -18,6 +18,11 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
 
   fullBuffer: null,
 
+  limit: false,
+  setLimit(limit) {
+    set({ limit });
+  },
+
   recaptchaToken: null,
   setRecaptchaToken(token) {
     set({ recaptchaToken: token });
@@ -76,6 +81,10 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, text, recaptchaToken }),
     });
+    if (res.status === 429) {
+      set({ loading: false, limit: true });
+      return;
+    }
     if (!res.body) {
       set({ loading: false });
       return;

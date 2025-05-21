@@ -140,5 +140,10 @@
     "errorName": "Name is required",
     "errorEmail": "Invalid email address",
     "sent": "Sent"
+  },
+  "limit": {
+    "title": "Request Limit Reached",
+    "desc": "You’ve reached the limit for anonymous requests. To continue using the service without limitations, please log in to your account.",
+    "login": "Log in"
   }
 }
