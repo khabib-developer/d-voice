@@ -24,6 +24,8 @@ export async function POST(request: Request) {
       }
     );
 
+    console.log("TTS response:", response.data);
+
     return new Response(response.data, {
       status: 200,
       headers: {

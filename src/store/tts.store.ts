@@ -107,6 +107,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     let playTime = audioCtx.currentTime;
     async function pump() {
       const { done, value } = await audioReader.read();
+      console.log(value);
       if (done) {
         set({ fullBuffer: mergeAudioBuffers(audioCtx, buffers) });
 
