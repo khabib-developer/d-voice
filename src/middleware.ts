@@ -13,12 +13,12 @@ export function middleware(request: NextRequest) {
     origin?.startsWith(allowedOrigin) || referer?.startsWith(allowedOrigin);
   const isBrowser = userAgent.includes("Mozilla");
 
-  // if (!isValidOrigin || !isBrowser) {
-  //   return new NextResponse(JSON.stringify({ error: "Access denied" }), {
-  //     status: 403,
-  //     headers: { "Content-Type": "application/json" },
-  //   });
-  // }
+  if (!isValidOrigin || !isBrowser) {
+    return new NextResponse(JSON.stringify({ error: "Access denied" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   return NextResponse.next();
 }

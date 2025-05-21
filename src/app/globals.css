@@ -72,3 +72,7 @@
   background-image: url("/gradient (1).svg");
   background-size: cover;
 }
+
+.grecaptcha-badge {
+  display: none;
+}

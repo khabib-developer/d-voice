@@ -50,8 +50,6 @@ export const TTSDemo = ({ models }: props) => {
 
   useEffect(() => {
     setTimeout(() => {
-      console.log((window as any).grecaptcha);
-
       if ((window as any).grecaptcha) {
         (window as any).grecaptcha.ready(() => {
           (window as any).grecaptcha
