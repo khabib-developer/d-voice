@@ -105,35 +105,69 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
 
     // Stream & schedule chunks continuously
     let playTime = audioCtx.currentTime;
+
+    // async function pump() {
+    //   const { done, value } = await audioReader.read();
+    //   console.log(value);
+    //   if (done) {
+    //     set({ fullBuffer: mergeAudioBuffers(audioCtx, buffers) });
+
+    //     return;
+    //   }
+
+    //   try {
+    //     const buffer = await audioCtx.decodeAudioData(
+    //       value.buffer as ArrayBuffer
+    //     );
+    //     buffers.push(buffer);
+
+    //     // accumulate total duration for progress denominator
+    //     set((s) => ({ totalDuration: s.totalDuration + buffer.duration }));
+
+    //     const srcNode = audioCtx.createBufferSource();
+    //     srcNode.buffer = buffer;
+    //     srcNode.connect(audioCtx.destination);
+    //     srcNode.start(playTime);
+    //     srcNode.addEventListener("ended", onAudioFinish);
+    //     playTime += buffer.duration;
+    //   } catch (err) {
+    //     console.error("decode/play chunk failed", err);
+    //   }
+
+    //   // continue reading even if paused, so totalDuration completes
+    //   await pump();
+    // }
+
+    let streamBuffer = new Uint8Array(); // collect full audio stream
+
     async function pump() {
       const { done, value } = await audioReader.read();
-      console.log(value);
       if (done) {
-        set({ fullBuffer: mergeAudioBuffers(audioCtx, buffers) });
+        try {
+          const audioBuffer = await audioCtx.decodeAudioData(
+            streamBuffer.buffer
+          );
+          set({ fullBuffer: audioBuffer });
 
+          const srcNode = audioCtx.createBufferSource();
+          srcNode.buffer = audioBuffer;
+          srcNode.connect(audioCtx.destination);
+          srcNode.start(0);
+          srcNode.addEventListener("ended", onAudioFinish);
+
+          tick();
+        } catch (e) {
+          console.error("decodeAudioData failed on full buffer", e);
+        }
         return;
       }
 
-      try {
-        const buffer = await audioCtx.decodeAudioData(
-          value.buffer as ArrayBuffer
-        );
-        buffers.push(buffer);
+      // Append current chunk
+      const newBuffer = new Uint8Array(streamBuffer.length + value.length);
+      newBuffer.set(streamBuffer);
+      newBuffer.set(value, streamBuffer.length);
+      streamBuffer = newBuffer;
 
-        // accumulate total duration for progress denominator
-        set((s) => ({ totalDuration: s.totalDuration + buffer.duration }));
-
-        const srcNode = audioCtx.createBufferSource();
-        srcNode.buffer = buffer;
-        srcNode.connect(audioCtx.destination);
-        srcNode.start(playTime);
-        srcNode.addEventListener("ended", onAudioFinish);
-        playTime += buffer.duration;
-      } catch (err) {
-        console.error("decode/play chunk failed", err);
-      }
-
-      // continue reading even if paused, so totalDuration completes
       await pump();
     }
 
