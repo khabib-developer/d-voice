@@ -18,6 +18,11 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
 
   fullBuffer: null,
 
+  recaptchaToken: null,
+  setRecaptchaToken(token) {
+    set({ recaptchaToken: token });
+  },
+
   setModel(model) {
     set({ model, requested: false });
   },
@@ -26,7 +31,16 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   },
 
   async sendText() {
-    const { text, model, requested, fullBuffer, ctx, loading, tick } = get();
+    const {
+      text,
+      model,
+      requested,
+      fullBuffer,
+      ctx,
+      loading,
+      tick,
+      recaptchaToken,
+    } = get();
 
     // Prevent duplicate requests
     if (loading) return;
@@ -58,7 +72,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, text }),
+      body: JSON.stringify({ model, text, recaptchaToken }),
     });
     if (!res.body) {
       set({ loading: false });

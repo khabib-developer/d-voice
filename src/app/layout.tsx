@@ -20,6 +20,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       <head>
         <title>Dvoice</title>
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <script
+          src={`https://www.google.com/recaptcha/api.js?render=${process.env
+            .NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}`}
+        ></script>
       </head>
       <body
         className={cn(

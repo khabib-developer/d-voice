@@ -23,6 +23,9 @@ export interface ITTSStore {
   requested: boolean;
   reader: ReadableStreamDefaultReader<Uint8Array<ArrayBufferLike>> | null;
 
+  recaptchaToken: string | null;
+  setRecaptchaToken: (token: string) => void;
+
   fullBuffer: null | AudioBuffer;
 
   totalDuration: number;
