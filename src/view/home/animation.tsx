@@ -16,7 +16,7 @@ export const BackgroundAnimation = () => {
 
   // Example: update speed or playing status on demand
   useEffect(() => {
-    speedRef.current = loading ? 50 : isPlaying ? 8 : 1; // change speed anytime
+    speedRef.current = loading ? 20 : isPlaying ? 8 : 1; // change speed anytime
     isPlayingRef.current = isPlaying; // toggle colorful mode
   }, [loading, isPlaying]);
 

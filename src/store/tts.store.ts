@@ -9,7 +9,6 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   model: "",
   requested: false,
   ctx: null,
-  srcNode: null,
   reader: null,
 
   totalDuration: 0,
@@ -27,235 +26,128 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   },
 
   async sendText() {
-    const {
-      text,
-      model,
-      requested,
-      ctx,
-      reader,
-      isPlaying,
-      loading,
-      tick,
-      totalDuration,
-      fullBuffer,
-      onAudioFinish,
-    } = get();
+    const { text, model, requested, ctx, isPlaying, loading, tick } = get();
 
     if (loading) return;
 
-    // Toggle pause/resume if already initialized
-
-    if (!requested && isPlaying && ctx) {
-      await ctx.suspend();
-      const { timerId } = get();
-      if (timerId != null) cancelAnimationFrame(timerId);
-      set({ isPlaying: false });
-      return;
-    }
-
-    if (ctx && reader && requested) {
+    // 1) Toggle pause/resume if streaming or replaying
+    if (ctx && requested) {
       if (isPlaying) {
         await ctx.suspend();
         if (get().timerId != null) cancelAnimationFrame(get().timerId!);
         set({ isPlaying: false });
       } else {
-        ctx.resume();
-        console.log("resume");
+        await ctx.resume();
+        set({ isPlaying: true });
         tick();
       }
       return;
     }
 
-    if (!ctx && requested) {
-      const audioCtx = new AudioContext();
-      set({ ctx: audioCtx, startTimestamp: 0 });
-      const srcNode = audioCtx.createBufferSource();
-      srcNode.buffer = fullBuffer;
-      srcNode.connect(audioCtx.destination);
-      srcNode.start(0);
-      srcNode.addEventListener("ended", onAudioFinish);
-      tick();
+    // 2) If fullBuffer exists (replay case), start from beginning
+    if (!ctx && requested && get().fullBuffer) {
+      this.playFullBuffer(0);
       return;
     }
 
+    // 3) First-time play: fetch and stream
     if (!text || !model) return;
     if (requested) return;
     set({ loading: true });
 
-    const response = await fetch("/api/tts", {
+    const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, text }),
     });
-
     set({ requested: true, loading: false });
-    if (!response.body) return;
+    if (!res.body) return;
+
     const audioCtx = new AudioContext();
-    const audioReader = response.body.getReader();
-    set({
-      ctx: audioCtx,
-      reader: audioReader,
-      totalDuration: 0,
-      startTimestamp: 0,
-    });
+    const reader = res.body.getReader();
+    set({ ctx: audioCtx, reader, requested: true });
 
-    tick();
+    // Collect raw bytes
+    const chunks: Uint8Array[] = [];
+    let streamLen = 0;
 
-    const buffers: AudioBuffer[] = [];
-
-    // Stream & schedule chunks continuously
-    let playTime = audioCtx.currentTime;
-
-    // async function pump() {
-    //   const { done, value } = await audioReader.read();
-    //   console.log(value);
-    //   if (done) {
-    //     set({ fullBuffer: mergeAudioBuffers(audioCtx, buffers) });
-
-    //     return;
-    //   }
-
-    //   try {
-    //     const buffer = await audioCtx.decodeAudioData(
-    //       value.buffer as ArrayBuffer
-    //     );
-    //     buffers.push(buffer);
-
-    //     // accumulate total duration for progress denominator
-    //     set((s) => ({ totalDuration: s.totalDuration + buffer.duration }));
-
-    //     const srcNode = audioCtx.createBufferSource();
-    //     srcNode.buffer = buffer;
-    //     srcNode.connect(audioCtx.destination);
-    //     srcNode.start(playTime);
-    //     srcNode.addEventListener("ended", onAudioFinish);
-    //     playTime += buffer.duration;
-    //   } catch (err) {
-    //     console.error("decode/play chunk failed", err);
-    //   }
-
-    //   // continue reading even if paused, so totalDuration completes
-    //   await pump();
-    // }
-
-    let streamBuffer = new Uint8Array(); // collect full audio stream
-
+    // Read all chunks
     async function pump() {
-      const { done, value } = await audioReader.read();
+      const { done, value } = await reader.read();
       if (done) {
-        try {
-          const audioBuffer = await audioCtx.decodeAudioData(
-            streamBuffer.buffer
-          );
-          set({ fullBuffer: audioBuffer });
-
-          const srcNode = audioCtx.createBufferSource();
-          srcNode.buffer = audioBuffer;
-          srcNode.connect(audioCtx.destination);
-          srcNode.start(0);
-          srcNode.addEventListener("ended", onAudioFinish);
-
-          tick();
-        } catch (e) {
-          console.error("decodeAudioData failed on full buffer", e);
+        // concatenate
+        const fullBytes = new Uint8Array(streamLen);
+        let offset = 0;
+        for (const chunk of chunks) {
+          fullBytes.set(chunk, offset);
+          offset += chunk.length;
         }
+        // decode full buffer
+        const buffer = await audioCtx.decodeAudioData(fullBytes.buffer);
+        // store and play
+        set({ fullBuffer: buffer, totalDuration: buffer.duration });
+        get().playFullBuffer(0);
         return;
       }
-
-      // Append current chunk
-      const newBuffer = new Uint8Array(streamBuffer.length + value.length);
-      newBuffer.set(streamBuffer);
-      newBuffer.set(value, streamBuffer.length);
-      streamBuffer = newBuffer;
-
+      chunks.push(value);
+      streamLen += value.length;
       await pump();
     }
-
     pump();
   },
 
-  seekTo(seconds) {
-    const { fullBuffer, ctx, timerId, tick, onAudioFinish, startTimestamp } =
-      get();
-    if (!fullBuffer) return;
-
-    // 1) Stop & clean up the old context
+  // helper to play merged fullBuffer from an offset
+  playFullBuffer(offset: number) {
+    const { fullBuffer, timerId, tick, ctx } = get();
+    // Stop and close previous context to halt any ongoing audio
     if (timerId != null) cancelAnimationFrame(timerId);
     if (ctx) {
       ctx.close();
     }
+    if (!fullBuffer) return;
 
-    // 2) Build a fresh context and source node
+    // Create new context & source
     const audioCtx = new AudioContext();
     const source = audioCtx.createBufferSource();
     source.buffer = fullBuffer;
     source.connect(audioCtx.destination);
 
-    // 3) Record new startTimestamp against which we'll measure currentTime
-    const startTS = audioCtx.currentTime - seconds;
-    // so that: audioCtx.currentTime - startTS === toSeconds at the moment play begins
-
+    // Compute new start timestamp
+    const startTS = audioCtx.currentTime - offset;
     set({
       ctx: audioCtx,
-      requested: true, // we already have fullBuffer
       isPlaying: true,
-      timerId: null,
       startTimestamp: startTS,
-      currentTime: seconds,
+      currentTime: offset,
     });
 
-    // 4) Start playback *at* the offset
-    source.start(0, seconds);
-    source.addEventListener("ended", onAudioFinish);
+    // Start playback at offset
+    source.start(0, offset);
+    source.addEventListener("ended", get().onAudioFinish);
 
-    // 5) Kick off the RAF loop to update currentTime
+    // Start RAF ticking
     tick();
   },
 
-  onAudioFinish(ev) {
+  seekTo(seconds: number) {
+    get().playFullBuffer(seconds);
+  },
+
+  onAudioFinish() {
     const { timerId, ctx } = get();
     if (timerId != null) cancelAnimationFrame(timerId);
     ctx?.close();
-    set({
-      isPlaying: false,
-      ctx: null,
-    });
+    set({ isPlaying: false, ctx: null, requested: false });
   },
 
   tick() {
-    set({ isPlaying: true });
-    const { ctx, tick, isPlaying, startTimestamp } = get();
+    const { ctx, startTimestamp } = get();
     if (!ctx) return;
-
-    set({ currentTime: ctx.currentTime - startTimestamp });
-    if (isPlaying) set({ timerId: requestAnimationFrame(tick) });
+    const now = ctx.currentTime - startTimestamp;
+    set({ currentTime: now });
+    if (get().isPlaying) {
+      const id = requestAnimationFrame(get().tick);
+      set({ timerId: id });
+    }
   },
 }));
-
-function mergeAudioBuffers(
-  audioCtx: AudioContext,
-  buffers: AudioBuffer[]
-): AudioBuffer {
-  const totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
-  const sampleRate = buffers[0].sampleRate;
-  const numberOfChannels = buffers[0].numberOfChannels;
-
-  const mergedBuffer = audioCtx.createBuffer(
-    numberOfChannels,
-    totalLength,
-    sampleRate
-  );
-
-  for (let channel = 0; channel < numberOfChannels; channel++) {
-    const channelData = mergedBuffer.getChannelData(channel);
-    let offset = 0;
-
-    for (const buffer of buffers) {
-      const data = buffer.getChannelData(channel);
-      channelData.set(data, offset);
-      offset += buffer.length;
-    }
-  }
-
-  return mergedBuffer;
-}

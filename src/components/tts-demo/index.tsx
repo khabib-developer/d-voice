@@ -57,10 +57,11 @@ export const TTSDemo = ({ models }: props) => {
 
   const handleSeek = (event: MouseEvent<HTMLDivElement>) => {
     if (!totalDuration) return;
+    const latency = 0.01;
     const rect = event.currentTarget.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const pct = clickX / rect.width;
-    const targetSec = pct * totalDuration;
+    const targetSec = (pct - latency) * totalDuration;
     seekTo(targetSec);
   };
 

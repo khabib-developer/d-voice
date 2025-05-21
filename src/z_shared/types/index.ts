@@ -16,7 +16,6 @@ export type Tariff = {
 
 export interface ITTSStore {
   ctx: AudioContext | null;
-  srcNode: AudioBufferSourceNode | null;
   loading: boolean;
   isPlaying: boolean;
   text: string;
@@ -36,6 +35,8 @@ export interface ITTSStore {
   sendText: () => void;
 
   onAudioFinish: (ev: Event) => void;
+
+  playFullBuffer: (offset: number) => void;
 
   seekTo: (seconds: number) => void;
 
