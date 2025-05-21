@@ -69,6 +69,8 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     if (!text || !model) return;
     set({ loading: true });
 
+    console.log(recaptchaToken);
+
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
