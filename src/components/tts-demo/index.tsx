@@ -49,18 +49,22 @@ export const TTSDemo = ({ models }: props) => {
     : 0;
 
   useEffect(() => {
-    if ((window as any).grecaptcha) {
-      (window as any).grecaptcha.ready(() => {
-        (window as any).grecaptcha
-          .execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!, {
-            action: "tts",
-          })
-          .then((token: any) => {
-            console.log("Recaptcha token:", token);
-            setRecaptchaToken(token);
-          });
-      });
-    }
+    setTimeout(() => {
+      console.log((window as any).grecaptcha);
+
+      if ((window as any).grecaptcha) {
+        (window as any).grecaptcha.ready(() => {
+          (window as any).grecaptcha
+            .execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!, {
+              action: "tts",
+            })
+            .then((token: any) => {
+              console.log("Recaptcha token:", token);
+              setRecaptchaToken(token);
+            });
+        });
+      }
+    }, 500);
   }, []);
 
   useEffect(() => {
