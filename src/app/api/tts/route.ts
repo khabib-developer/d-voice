@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { model, text } = body;
 
-    const format = "WAV";
+    const format = "MP3";
 
     const response = await axios.post(
       process.env.TTS_API!,
@@ -23,8 +23,6 @@ export async function POST(request: Request) {
         httpsAgent,
       }
     );
-
-    console.log("TTS response:", response.data);
 
     return new Response(response.data, {
       status: 200,
