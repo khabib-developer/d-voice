@@ -3,9 +3,9 @@ import { Inter as FontSans } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
 import { RootLayoutProps } from "@/z_shared/types";
+import Script from "next/script";
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -20,10 +20,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       <head>
         <title>Dvoice</title>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <script
-          src={`https://www.google.com/recaptcha/api.js?render=${process.env
-            .NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}`}
-        ></script>
       </head>
       <body
         className={cn(
@@ -31,6 +27,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           fontSans.variable
         )}
       >
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${process.env
+            .NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}`}
+          strategy="afterInteractive"
+        />
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider
             attribute="class"
