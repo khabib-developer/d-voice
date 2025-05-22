@@ -41,29 +41,11 @@ export const TTSDemo = ({ models }: props) => {
     totalDuration,
     requested,
     seekTo,
-    setRecaptchaToken,
   } = useTTSStore();
 
   const progress = totalDuration
     ? Math.round(Math.min((currentTime / totalDuration) * 100, 100))
     : 0;
-
-  useEffect(() => {
-    setTimeout(() => {
-      if ((window as any).grecaptcha) {
-        (window as any).grecaptcha.ready(() => {
-          (window as any).grecaptcha
-            .execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!, {
-              action: "tts",
-            })
-            .then((token: any) => {
-              console.log("Recaptcha token:", token);
-              setRecaptchaToken(token);
-            });
-        });
-      }
-    }, 500);
-  }, []);
 
   useEffect(() => {
     if (models.length) setModel(models[0]);

@@ -28,6 +28,20 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     set({ recaptchaToken: token });
   },
 
+  async getCaptchaToken() {
+    return new Promise<string>((resolve) => {
+      if ((window as any).grecaptcha) {
+        (window as any).grecaptcha.ready(() => {
+          (window as any).grecaptcha
+            .execute(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!, {
+              action: "tts",
+            })
+            .then(resolve);
+        });
+      }
+    });
+  },
+
   setModel(model) {
     set({ model, requested: false });
   },
@@ -44,7 +58,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       ctx,
       loading,
       tick,
-      recaptchaToken,
+      getCaptchaToken,
     } = get();
 
     // Prevent duplicate requests
@@ -73,6 +87,8 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     // 2) First-time fetch and buffer
     if (!text || !model) return;
     set({ loading: true });
+
+    const recaptchaToken = await getCaptchaToken();
 
     const res = await fetch("/api/tts", {
       method: "POST",

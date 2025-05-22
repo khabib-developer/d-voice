@@ -36,6 +36,8 @@ export interface ITTSStore {
   timerId: number | null;
   startTimestamp: number;
 
+  getCaptchaToken: () => Promise<string>;
+
   setModel: (model: string) => void;
   setText: (text: string) => void;
   sendText: () => void;
