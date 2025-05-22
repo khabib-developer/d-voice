@@ -14,11 +14,14 @@ import { Button } from "@/z_shared/ui/Buttons";
 import { useLocale, useTranslations } from "next-intl";
 import { navigateToProfileDvoice } from "@/z_shared/utils";
 import { RxHamburgerMenu } from "react-icons/rx";
+import { MobileNav } from "./mobile-nav";
+import { useAppStore } from "@/store/app.store";
+import { HiXMark } from "react-icons/hi2";
 export function Header() {
   const { passiveLink } = useLinkHook();
   const t = useTranslations("header");
   const locale = useLocale();
-
+  const { isMobileMenuOpen, setMobileMenuOpen } = useAppStore();
   return (
     <div className="w-full fixed z-50 backdrop-blur-md shadow-lg dark:shadow-zinc-900">
       <div className="container flex justify-between h-[60px] items-center">
@@ -70,7 +73,17 @@ export function Header() {
           >
             {t("app")}
           </Button>
-          <RxHamburgerMenu className="text-xl md:hidden" />
+          {isMobileMenuOpen ? (
+            <HiXMark
+              onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-xl md:hidden cursor-pointer"
+            />
+          ) : (
+            <RxHamburgerMenu
+              onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-xl md:hidden cursor-pointer"
+            />
+          )}
         </div>
       </div>
     </div>

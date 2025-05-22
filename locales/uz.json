@@ -61,7 +61,9 @@
     "documentation": "Qo'llanma",
     "pricing": "Narxlar",
     "contact": "Aloqaga chiqish",
-    "app": "Ilovaga o‘tish"
+    "app": "Ilovaga o‘tish",
+    "terms": "Shartlar va siyosatlar",
+    "privacy": "Maxfiylik"
   },
   "footer": {
     "terms": "Shartlar va siyosatlar",

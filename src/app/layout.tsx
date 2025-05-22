@@ -5,6 +5,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "next-themes";
 import { RootLayoutProps } from "@/z_shared/types";
+import { MobileNav } from "@/layout/header/mobile-nav";
 import Script from "next/script";
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -39,6 +40,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
             disableTransitionOnChange
           >
             {children}
+            <MobileNav />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

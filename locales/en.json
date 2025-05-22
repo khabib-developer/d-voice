@@ -61,7 +61,9 @@
     "documentation": "Documentation",
     "pricing": "Pricing",
     "contact": "Contact",
-    "app": "Go to app"
+    "app": "Go to app",
+    "terms": "Terms & policies",
+    "privacy": "Privacy"
   },
   "footer": {
     "terms": "Terms & policies",

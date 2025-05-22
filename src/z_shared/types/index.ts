@@ -54,3 +54,8 @@ export interface ITTSStore {
 export interface RootLayoutProps {
   children: ReactNode;
 }
+
+export interface IAppStore {
+  isMobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
+}

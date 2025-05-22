@@ -13,7 +13,7 @@ type props = {
 export const PricingPage = (props: props) => {
   const t = useTranslations("pricing");
   return (
-    <div className="bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 py-16 px-4 sm:px-6 lg:px-8 pt-[108px]">
+    <div className="bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 py-16 px-0 sm:px-6 lg:px-8 pt-[108px]">
       <div className="container py-10">
         <h1 className="text-3xl font-bold mb-6">{t("title")}</h1>
 

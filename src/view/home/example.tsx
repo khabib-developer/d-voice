@@ -15,7 +15,7 @@ export const Example = (props: props) => {
   return (
     <div className="mx-auto section active min-h-screen flex flex-col justify-center items-center">
       <div className="lg:w-[900px] md:w-[92%] w-[88%]">
-        <h1 className="xs:text-xl sm:text-4xl lg:text-7xl font-bold font-merriweather">
+        <h1 className="text-xl sm:text-4xl lg:text-7xl font-bold font-merriweather">
           {t("hero-text")}
         </h1>
         <p className="lg:text-2xl sm:text-md text-sm mt-5 px-1">
