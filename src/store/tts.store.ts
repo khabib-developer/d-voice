@@ -61,6 +61,11 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       getCaptchaToken,
     } = get();
 
+    let audioCtx = ctx;
+    if (!audioCtx || audioCtx.state === "closed") {
+      audioCtx = new AudioContext();
+    }
+
     // Prevent duplicate requests
     if (loading) return;
 
@@ -104,7 +109,6 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       return;
     }
 
-    const audioCtx = new AudioContext();
     const reader = res.body.getReader();
     set({ requested: true });
 
