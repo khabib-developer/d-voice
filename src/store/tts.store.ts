@@ -49,50 +49,59 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     set({ text, requested: false });
   },
 
+  // Main play/pause/stream function
   async sendText() {
+    const state = get();
     const {
       text,
       model,
       requested,
       fullBuffer,
-      ctx,
       loading,
       tick,
       getCaptchaToken,
-    } = get();
+      limit,
+    } = state;
 
-    let audioCtx = ctx;
+    // 1) Ensure AudioContext exists in user gesture
+    let audioCtx = state.ctx;
     if (!audioCtx || audioCtx.state === "closed") {
       audioCtx = new AudioContext();
+      set({ ctx: audioCtx });
+    }
+    // Resume if suspended (especially on iOS)
+    if (audioCtx.state === "suspended") {
+      await audioCtx.resume();
     }
 
-    // Prevent duplicate requests
+    // Prevent duplicate network calls
     if (loading) return;
 
-    // 1) If audio is already loaded (requested) then just play or resume
+    // 2) If already fetched: toggle play/pause or replay
     if (requested && fullBuffer) {
-      // if context exists, toggle pause/resume
-      if (ctx) {
-        if (get().isPlaying) {
-          await ctx.suspend();
-          if (get().timerId) cancelAnimationFrame(get().timerId!);
-          set({ isPlaying: false, loading: false });
+      if (state.isPlaying) {
+        await audioCtx.suspend();
+        if (state.timerId) cancelAnimationFrame(state.timerId);
+        set({ isPlaying: false, loading: false });
+      } else {
+        // if context closed, or new playback, use playFullBuffer
+        if (!state.ctx) {
+          set({ ctx: audioCtx });
+          get().playFullBuffer(state.currentTime);
         } else {
-          await ctx.resume();
+          await audioCtx.resume();
           set({ isPlaying: true, loading: false });
           tick();
         }
-      } else {
-        // no context: first playback of stored buffer
-        get().playFullBuffer(0);
       }
       return;
     }
 
-    // 2) First-time fetch and buffer
+    // 3) First-time fetch
     if (!text || !model) return;
-    set({ loading: true });
+    set({ loading: true, limit: false });
 
+    // reCAPTCHA may delay, but context already unlocked
     const recaptchaToken = await getCaptchaToken();
 
     const res = await fetch("/api/tts", {
@@ -112,7 +121,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     const reader = res.body.getReader();
     set({ requested: true });
 
-    // gather all chunks
+    // Collect and decode full stream
     const chunks: Uint8Array[] = [];
     let length = 0;
     while (true) {
@@ -121,39 +130,40 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       chunks.push(value);
       length += value.length;
     }
-
-    // concatenate and decode
     const bufferData = new Uint8Array(length);
     let offset = 0;
-    for (const chunk of chunks) {
-      bufferData.set(chunk, offset);
-      offset += chunk.length;
-    }
+    chunks.forEach((c) => {
+      bufferData.set(c, offset);
+      offset += c.length;
+    });
     const decoded = await audioCtx.decodeAudioData(bufferData.buffer);
-    set({ fullBuffer: decoded, totalDuration: decoded.duration });
+    set({
+      fullBuffer: decoded,
+      totalDuration: decoded.duration,
+      loading: false,
+    });
 
-    // clear loading and play
-    set({ loading: false });
+    // Start playback
     get().playFullBuffer(0);
   },
 
-  // helper to play merged fullBuffer from an offset
+  // Play buffer from offset
   playFullBuffer(offset: number) {
-    const { fullBuffer, timerId } = get();
+    const state = get();
+    const { fullBuffer, timerId } = state;
     if (!fullBuffer) return;
 
-    // clean existing
+    // Clean previous context
     if (timerId) cancelAnimationFrame(timerId);
-    const oldCtx = get().ctx;
-    if (oldCtx) oldCtx.close();
+    if (state.ctx) state.ctx.close();
 
-    // new context & source
+    // Create fresh AudioContext
     const audioCtx = new AudioContext();
     const source = audioCtx.createBufferSource();
     source.buffer = fullBuffer;
     source.connect(audioCtx.destination);
 
-    // set state for tracking
+    // Start at offset
     const startTS = audioCtx.currentTime - offset;
     set({
       ctx: audioCtx,
@@ -162,11 +172,9 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       currentTime: offset,
     });
 
-    // start playback
     source.start(0, offset);
     source.addEventListener("ended", get().onAudioFinish);
 
-    // kick off tick
     get().tick();
   },
 
@@ -175,10 +183,10 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   },
 
   onAudioFinish() {
-    const { timerId, ctx } = get();
-    if (timerId) cancelAnimationFrame(timerId);
-    if (ctx) ctx.close();
-    set({ isPlaying: false, ctx: null });
+    const state = get();
+    if (state.timerId) cancelAnimationFrame(state.timerId);
+    if (state.ctx) state.ctx.close();
+    set({ isPlaying: false, ctx: null, requested: false });
   },
 
   tick() {
