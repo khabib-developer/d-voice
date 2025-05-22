@@ -74,8 +74,6 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     if (!text || !model) return;
     set({ loading: true });
 
-    console.log(recaptchaToken);
-
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -85,7 +83,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       set({ loading: false, limit: true });
       return;
     }
-    if (!res.body) {
+    if (res.status !== 200 || !res.body) {
       set({ loading: false });
       return;
     }

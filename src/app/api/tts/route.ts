@@ -24,6 +24,8 @@ export async function POST(request: Request) {
 
     const recaptchaData = await checkCaptcha(recaptchaToken);
 
+    console.log(recaptchaData);
+
     if ((!recaptchaData.success || recaptchaData.score < 0.5) && !development) {
       return new Response(JSON.stringify({ error: "reCAPTCHA failed" }), {
         status: 403,
