@@ -28,21 +28,6 @@ export const HomePage = (props: props) => {
         <Sdk />
         <FAQs />
         <BonusCTA />
-
-        {/* <div className="section min-h-screen flex justify-center items-center ">
-          <div className="container flex flex-col items-center">
-            <h2 className="text-5xl text-center leading-[110%]">
-              See what you can build in Playground
-            </h2>
-            <p className="pt-3 w-8/12 text-center">
-              Explore our models and APIs in Playground without writing a single
-              line of code.
-            </p>
-            <Button className="dark:bg-white dark:text-neutral-950 mt-5 rounded-3xl flex justify-center items-center gap-2">
-              <span>Start exploring</span>
-            </Button>
-          </div>
-        </div> */}
       </div>
       <Footer />
     </Fragment>

@@ -37,4 +37,4 @@ export enum theme {
   light = "light",
 }
 
-export const defaultText = `Assalomu alaykum! Siz matndan nutqqa xizmatidan foydalanmoqdasiz. Bu tizim yozilgan matnni ovozga aylantiradi. Iltimos, o‘z matningizni quyidagi maydonga kiriting va tinglash tugmasini bosing.`;
+export const defaultText = `Haqiqat niholin o’stirmas gardun, Xohi befarq bo’lgil, xohi ko’p kuyun. Falak aylanishi o’zgarmas jindek, Bugunni kecha bil, ertani bugun.`;

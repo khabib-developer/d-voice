@@ -24,7 +24,11 @@ export const ThemeSwitcher = () => {
       <CiDark className="text-lg" />
     );
   return (
-    <Button size="icon" onClick={() => setTheme(changeTheme)}>
+    <Button
+      size="icon"
+      className="md:h-8 md:w-8 h-7 w-7 rounded-full md:rounded-md"
+      onClick={() => setTheme(changeTheme)}
+    >
       {icon}
     </Button>
   );

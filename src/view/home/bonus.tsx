@@ -6,10 +6,10 @@ export const BonusCTA = () => {
   return (
     <section className="bg-indigo-50 text-black dark:bg-slate-950 dark:text-white py-20 px-6 text-center rounded-t-[70px] mt-40">
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-3xl sm:text-4xl font-semibold mb-4">
+        <h2 className="md:text-4xl sm:text-3xl text-xl font-semibold mb-4">
           {t("bonus-title")}
         </h2>
-        <p className="text-lg text-gray-800 dark:text-gray-200 mb-6">
+        <p className="md:text-lg sm:text-md text-xs text-gray-800 dark:text-gray-200 mb-6">
           {t("bonus-desc")}
         </p>
         <div className="flex gap-2 justify-center items-center">

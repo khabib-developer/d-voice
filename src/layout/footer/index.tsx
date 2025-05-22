@@ -9,25 +9,30 @@ export const Footer = () => {
   return (
     <div className="w-full fixed z-50 bottom-0 backdrop-blur-md ">
       <div className="container h-[50px] justify-between border-t-[1px] dark:border-zinc-800 text-sm flex items-center">
-        <div>
-          <span>©</span>
-          <span>{new Date().getFullYear()}</span>{" "}
-          <span className="font-bold font-quicksand">DVoice, Inc</span>
+        <div className="flex items-center flex-col md:flex-row">
+          <div>
+            <span>©</span>
+            <span>{new Date().getFullYear()}</span>{" "}
+            <span className="font-bold font-quicksand">DVoice, Inc</span>
+          </div>
+
           <Link
             href={Routes.terms}
-            className="mx-3 text-zinc-600 font-sans hover:text-black dark:text-zinc-300 dark:hover:text-white"
+            className="mx-3 hidden md:inline text-zinc-600 font-sans hover:text-black text-xs md:text-md  dark:text-zinc-300 dark:hover:text-white"
           >
             {t("terms")}
           </Link>
           <Link
             href={Routes.privacy}
-            className=" text-zinc-600 font-sans hover:text-black dark:text-zinc-300 dark:hover:text-white"
+            className=" text-zinc-600 hidden md:inline font-sans hover:text-black text-xs md:text-md  dark:text-zinc-300 dark:hover:text-white"
           >
             {t("privacy")}
           </Link>
         </div>
-        <div className="flex gap-2 items-center">
-          <LanguageMenu />
+        <div className="flex gap-2 items-center ">
+          <div className="md:block hidden">
+            <LanguageMenu />
+          </div>
           <ThemeSwitcher />
         </div>
       </div>

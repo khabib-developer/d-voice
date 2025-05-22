@@ -13,7 +13,7 @@ import { useLinkHook } from "@/z_shared/hooks/link.hook";
 import { Button } from "@/z_shared/ui/Buttons";
 import { useLocale, useTranslations } from "next-intl";
 import { navigateToProfileDvoice } from "@/z_shared/utils";
-
+import { RxHamburgerMenu } from "react-icons/rx";
 export function Header() {
   const { passiveLink } = useLinkHook();
   const t = useTranslations("header");
@@ -29,7 +29,7 @@ export function Header() {
           <Logo />
           <span className="text-lg font-bold font-quicksand">DVoice</span>
         </Link>
-        <NavigationMenu className=" flex-1">
+        <NavigationMenu className="flex-[4] hidden md:flex">
           <NavigationMenuList className="gap-6">
             <NavigationMenuItem>
               <Link href={Routes.home} legacyBehavior passHref>
@@ -66,10 +66,11 @@ export function Header() {
         <div className="flex justify-end flex-1 items-center gap-2">
           <Button
             onClick={navigateToProfileDvoice}
-            className="rounded-3xl !h-7 bg-black text-white dark:bg-white dark:text-black"
+            className="rounded-3xl text-xs !h-7 bg-black hidden md:flex text-white dark:bg-white dark:text-black"
           >
             {t("app")}
           </Button>
+          <RxHamburgerMenu className="text-xl md:hidden" />
         </div>
       </div>
     </div>

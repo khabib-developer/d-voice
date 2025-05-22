@@ -72,7 +72,7 @@ export const TTSDemo = ({ models }: props) => {
       <textarea
         value={text}
         onChange={handleChange}
-        className="h-[168px] text-xl dark:bg-black/20 bg-white/5 resize-none px-0 py-4 w-full  border-none outline-none"
+        className="h-[168px] lg:text-xl sm:text-sm text-xs dark:bg-black/20 bg-white/5 resize-none px-0 py-4 w-full  border-none outline-none"
       ></textarea>
       <div
         onClick={handleSeek}
@@ -85,7 +85,7 @@ export const TTSDemo = ({ models }: props) => {
       </div>
       <div className="py-4 flex justify-between items-center">
         <Select onValueChange={setModel} value={model}>
-          <SelectTrigger className="w-[180px] rounded-full dark:border-zinc-900">
+          <SelectTrigger className="md:w-[180px] w-[100px] rounded-full dark:border-zinc-900">
             <SelectValue placeholder={t("models")} />
           </SelectTrigger>
           <SelectContent className="dark:bg-black dark:border-zinc-900 bg-white">
@@ -99,11 +99,13 @@ export const TTSDemo = ({ models }: props) => {
             </SelectGroup>
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-4">
-          <span className="font-light">{text.length} / 200</span>
+        <div className="flex items-center gap-2 md:gap-4">
+          <span className="font-light text-xs md:text-md">
+            {text.length} / 200
+          </span>
           <div
             onClick={sendText}
-            className={`w-[36px] h-[36px] rounded-full transition-all  ${
+            className={`md:w-[36px] md:h-[36px] w-[28px] h-[28px] rounded-full transition-all  ${
               !Boolean(model)
                 ? "bg-neutral-500 dark:bg-neutral-500"
                 : requested
@@ -117,9 +119,9 @@ export const TTSDemo = ({ models }: props) => {
                 color={resolvedTheme === theme.dark ? "black" : "white"}
               />
             ) : isPlaying ? (
-              <FaPause className="text-white dark:text-black " />
+              <FaPause className="text-white dark:text-black  text-xs md:text-md" />
             ) : (
-              <FaPlay className="text-white dark:text-black ml-1" />
+              <FaPlay className="text-white dark:text-black ml-1 text-xs md:text-md" />
             )}
           </div>
         </div>
