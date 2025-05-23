@@ -2,7 +2,6 @@ import { isRateLimited } from "@/lib/rateLimiter";
 import axios from "axios";
 import https from "https";
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
@@ -10,62 +9,63 @@ const httpsAgent = new https.Agent({
 
 const development = process.env.NODE_ENV === "development";
 
-export const dynamic = "force-dynamic";
+export async function POST(request: Request) {
+  try {
+    const limit = checkRateLimit(request);
 
-export async function GET(request: NextRequest) {
-  // 1) extract params
-  const { searchParams } = request.nextUrl;
-  const model = searchParams.get("model")!;
-  const text = searchParams.get("text")!;
-  const recaptchaToken = searchParams.get("recaptchaToken")!;
+    if (limit)
+      return new Response(
+        JSON.stringify({ error: "Too many requests; please slow down." }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
 
-  // 2) rate-limit & captcha (reuse your helpers)
-  if (checkRateLimit(request)) {
-    return new Response(
-      JSON.stringify({ error: "Too many requests; please slow down." }),
-      { status: 429, headers: { "Content-Type": "application/json" } }
+    const body = await request.json();
+    const { model, text, recaptchaToken } = body;
+
+    const recaptchaData = await checkCaptcha(recaptchaToken);
+
+    console.log(recaptchaData);
+
+    if ((!recaptchaData.success || recaptchaData.score < 0.5) && !development) {
+      return new Response(JSON.stringify({ error: "reCAPTCHA failed" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const format = "MP3";
+
+    const response = await axios.post(
+      process.env.TTS_API!,
+      { text, model, format },
+      {
+        responseType: "arraybuffer",
+        headers: {
+          token: process.env.TTS_TOKEN!,
+        },
+        httpsAgent,
+      }
     );
-  }
-  const recaptchaData = await checkCaptcha(recaptchaToken);
-  if (
-    (!recaptchaData.success || recaptchaData.score < 0.5) &&
-    process.env.NODE_ENV !== "development"
-  ) {
-    return new Response(JSON.stringify({ error: "reCAPTCHA failed" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
+
+    const b64 = Buffer.from(response.data).toString("base64");
+
+    return new Response(JSON.stringify({ audio: b64 }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
-  }
-
-  // 3) proxy the TTS API in streaming mode
-  const ttsRes = await fetch(process.env.TTS_API!, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      token: process.env.TTS_TOKEN!,
-    },
-    body: JSON.stringify({ model, text, format: "MP3" }),
-  });
-
-  if (!ttsRes.ok) {
-    console.error("TTS API error:", await ttsRes.text());
+  } catch (error: any) {
+    console.error("TTS request failed:", error.message);
     return new Response(JSON.stringify({ error: "TTS API failed" }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
   }
-
-  // 4) pipe it straight through as audio/mpeg
-  return new Response(ttsRes.body, {
-    status: 200,
-    headers: {
-      "Content-Type": "audio/mpeg",
-      "Cache-Control": "no-store",
-      "Content-Length": ttsRes.headers.get("Content-Length") || "0",
-      "Accept-Ranges": "bytes",
-    },
-  });
 }
+
 function checkRateLimit(request: Request) {
   const cookieStore = cookies();
   let sessionId = cookieStore.get("sessionId")?.value;

@@ -56,14 +56,27 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     set({ loading: true });
     const recaptchaToken = await getCaptchaToken();
 
-    // Build a query string if you like, or send via POST and read from cookies
-    const params = new URLSearchParams({ model, text, recaptchaToken });
-    const url = `/api/tts?${params.toString()}`;
+    const response = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, text, recaptchaToken }),
+    });
+    if (!response.ok) {
+      set({ loading: false });
+      console.error("TTS errored:", await response.text());
+      return;
+    }
 
-    const audio = new Audio(url);
-    audio.autoplay = false;
-    audio.controls = true;
-    audio.play();
+    const { audio: base64 } = await response.json();
+
+    // build data URI
+    // if your API is MP3, use audio/mpeg; if WAV, use audio/wav
+    const mime = "audio/mpeg";
+    const dataUrl = `data:${mime};base64,${base64}`;
+
+    // play it
+    const audio = new Audio(dataUrl);
+    audio.autoplay = true;
     audio.addEventListener("playing", () => {
       set({ isPlaying: true, loading: false });
     });
