@@ -50,39 +50,22 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   },
 
   async sendText() {
-    const { text, model, loading } = get();
+    const { text, model, loading, getCaptchaToken } = get();
     if (loading) return;
 
-    // 1) Fire off the TTS request
     set({ loading: true });
-    const recaptchaToken = await get().getCaptchaToken();
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, text, recaptchaToken }),
-    });
-    if (!res.ok || !res.body) {
-      set({ loading: false });
+    const recaptchaToken = await getCaptchaToken();
 
-      return;
-    }
+    // Build a query string if you like, or send via POST and read from cookies
+    const params = new URLSearchParams({ model, text, recaptchaToken });
+    const url = `/api/tts?${params.toString()}`;
 
-    // 2) Read the full body into one ArrayBuffer
-    const arrayBuffer = await res.arrayBuffer();
-
-    // 3) Create a blob URL and store it
-    const blob = new Blob([arrayBuffer], { type: "audio/wav" });
-    const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
-    audio.src = url;
-    audio.load();
-    audio.play();
-    set({ isPlaying: true, loading: false });
+    audio.autoplay = true;
+    audio.addEventListener("playing", () => {
+      set({ isPlaying: true, loading: false });
+    });
     audio.addEventListener("ended", get().onAudioFinish);
-    // set({fullBuffer: url, requested: true, loading: false})
-
-    // // 4) Immediately play
-    // get().playAudioElement(url, 0);
   },
 
   // helper to play merged fullBuffer from an offset
