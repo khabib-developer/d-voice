@@ -61,7 +61,9 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     const url = `/api/tts?${params.toString()}`;
 
     const audio = new Audio(url);
-    audio.autoplay = true;
+    audio.autoplay = false;
+    audio.controls = true;
+    audio.play();
     audio.addEventListener("playing", () => {
       set({ isPlaying: true, loading: false });
     });

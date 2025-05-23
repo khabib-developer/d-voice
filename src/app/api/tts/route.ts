@@ -61,6 +61,8 @@ export async function GET(request: NextRequest) {
     headers: {
       "Content-Type": "audio/mpeg",
       "Cache-Control": "no-store",
+      "Content-Length": ttsRes.headers.get("Content-Length") || "0",
+      "Accept-Ranges": "bytes",
     },
   });
 }
