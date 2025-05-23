@@ -49,121 +49,59 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     set({ text, requested: false });
   },
 
-  // Main play/pause/stream function
   async sendText() {
-    const state = get();
-    const {
-      text,
-      model,
-      requested,
-      fullBuffer,
-      loading,
-      tick,
-      getCaptchaToken,
-      limit,
-    } = state;
-
-    // 1) Ensure AudioContext exists in user gesture
-    let audioCtx = state.ctx;
-    if (!audioCtx || audioCtx.state === "closed") {
-      audioCtx = new AudioContext();
-      set({ ctx: audioCtx });
-    }
-    // Resume if suspended (especially on iOS)
-    if (audioCtx.state === "suspended") {
-      await audioCtx.resume();
-    }
-
-    // Prevent duplicate network calls
+    const { text, model, loading } = get();
     if (loading) return;
 
-    // 2) If already fetched: toggle play/pause or replay
-    if (requested && fullBuffer) {
-      if (state.isPlaying) {
-        await audioCtx.suspend();
-        if (state.timerId) cancelAnimationFrame(state.timerId);
-        set({ isPlaying: false, loading: false });
-      } else {
-        // if context closed, or new playback, use playFullBuffer
-        if (!state.ctx) {
-          set({ ctx: audioCtx });
-          get().playFullBuffer(state.currentTime);
-        } else {
-          await audioCtx.resume();
-          set({ isPlaying: true, loading: false });
-          tick();
-        }
-      }
-      return;
-    }
-
-    // 3) First-time fetch
-    if (!text || !model) return;
-    set({ loading: true, limit: false });
-
-    // reCAPTCHA may delay, but context already unlocked
-    const recaptchaToken = await getCaptchaToken();
-
+    // 1) Fire off the TTS request
+    set({ loading: true });
+    const recaptchaToken = await get().getCaptchaToken();
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, text, recaptchaToken }),
     });
-    if (res.status === 429) {
-      set({ loading: false, limit: true });
-      return;
-    }
-    if (res.status !== 200 || !res.body) {
+    if (!res.ok || !res.body) {
       set({ loading: false });
+
       return;
     }
 
-    const reader = res.body.getReader();
-    set({ requested: true });
+    // 2) Read the full body into one ArrayBuffer
+    const arrayBuffer = await res.arrayBuffer();
 
-    // Collect and decode full stream
-    const chunks: Uint8Array[] = [];
-    let length = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      length += value.length;
-    }
-    const bufferData = new Uint8Array(length);
-    let offset = 0;
-    chunks.forEach((c) => {
-      bufferData.set(c, offset);
-      offset += c.length;
-    });
-    const decoded = await audioCtx.decodeAudioData(bufferData.buffer);
-    set({
-      fullBuffer: decoded,
-      totalDuration: decoded.duration,
-      loading: false,
-    });
+    // 3) Create a blob URL and store it
+    const blob = new Blob([arrayBuffer], { type: "audio/wav" });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.src = url;
+    audio.load();
+    audio.play();
+    set({ isPlaying: true, loading: false });
+    audio.addEventListener("ended", get().onAudioFinish);
+    // set({fullBuffer: url, requested: true, loading: false})
 
-    // Start playback
-    get().playFullBuffer(0);
+    // // 4) Immediately play
+    // get().playAudioElement(url, 0);
   },
 
-  // Play buffer from offset
+  // helper to play merged fullBuffer from an offset
   playFullBuffer(offset: number) {
-    const state = get();
-    const { fullBuffer, timerId } = state;
+    const { fullBuffer, timerId } = get();
     if (!fullBuffer) return;
 
-    // Clean previous context
+    // clean existing
     if (timerId) cancelAnimationFrame(timerId);
-    if (state.ctx) state.ctx.close();
+    const oldCtx = get().ctx;
+    if (oldCtx) oldCtx.close();
 
-    // Create fresh AudioContext
+    // new context & source
     const audioCtx = new AudioContext();
     const source = audioCtx.createBufferSource();
     source.buffer = fullBuffer;
     source.connect(audioCtx.destination);
 
-    // Start at offset
+    // set state for tracking
     const startTS = audioCtx.currentTime - offset;
     set({
       ctx: audioCtx,
@@ -172,9 +110,11 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       currentTime: offset,
     });
 
+    // start playback
     source.start(0, offset);
     source.addEventListener("ended", get().onAudioFinish);
 
+    // kick off tick
     get().tick();
   },
 
@@ -183,10 +123,10 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   },
 
   onAudioFinish() {
-    const state = get();
-    if (state.timerId) cancelAnimationFrame(state.timerId);
-    if (state.ctx) state.ctx.close();
-    set({ isPlaying: false, ctx: null, requested: false });
+    const { timerId, ctx } = get();
+    if (timerId) cancelAnimationFrame(timerId);
+    if (ctx) ctx.close();
+    set({ isPlaying: false, ctx: null });
   },
 
   tick() {
@@ -200,3 +140,89 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     }
   },
 }));
+
+// const {
+//   text,
+//   model,
+//   requested,
+//   fullBuffer,
+//   ctx,
+//   loading,
+//   tick,
+//   getCaptchaToken,
+// } = get();
+
+// let audioCtx = ctx;
+// if (!audioCtx || audioCtx.state === "closed") {
+//   audioCtx = new AudioContext();
+// }
+
+// // // Prevent duplicate requests
+// // if (loading) return;
+
+// // // 1) If audio is already loaded (requested) then just play or resume
+// // if (requested && fullBuffer) {
+// //   // if context exists, toggle pause/resume
+// //   if (ctx) {
+// //     if (get().isPlaying) {
+// //       await ctx.suspend();
+// //       if (get().timerId) cancelAnimationFrame(get().timerId!);
+// //       set({ isPlaying: false, loading: false });
+// //     } else {
+// //       await ctx.resume();
+// //       set({ isPlaying: true, loading: false });
+// //       tick();
+// //     }
+// //   } else {
+// //     // no context: first playback of stored buffer
+// //     get().playFullBuffer(0);
+// //   }
+// //   return;
+// // }
+
+// // // 2) First-time fetch and buffer
+// // if (!text || !model) return;
+// // set({ loading: true });
+
+// // const recaptchaToken = await getCaptchaToken();
+
+// // const res = await fetch("/api/tts", {
+// //   method: "POST",
+// //   headers: { "Content-Type": "application/json" },
+// //   body: JSON.stringify({ model, text, recaptchaToken }),
+// // });
+// // if (res.status === 429) {
+// //   set({ loading: false, limit: true });
+// //   return;
+// // }
+// // if (res.status !== 200 || !res.body) {
+// //   set({ loading: false });
+// //   return;
+// // }
+
+// // const reader = res.body.getReader();
+// // set({ requested: true });
+
+// // // gather all chunks
+// // const chunks: Uint8Array[] = [];
+// // let length = 0;
+// // while (true) {
+// //   const { done, value } = await reader.read();
+// //   if (done) break;
+// //   chunks.push(value);
+// //   length += value.length;
+// // }
+
+// // // concatenate and decode
+// // const bufferData = new Uint8Array(length);
+// // let offset = 0;
+// // for (const chunk of chunks) {
+// //   bufferData.set(chunk, offset);
+// //   offset += chunk.length;
+// // }
+// // const decoded = await audioCtx.decodeAudioData(bufferData.buffer);
+// // set({ fullBuffer: decoded, totalDuration: decoded.duration });
+
+// // // clear loading and play
+// // set({ loading: false });
+// // get().playFullBuffer(0);
