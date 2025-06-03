@@ -94,6 +94,8 @@ export async function GET(request: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    // console.log(sessionId, maskStore[sessionId]);
+
     const info = maskStore[sessionId];
     if (!info) {
       // (Maybe the session expired or someone tried to call GET before POST.)
