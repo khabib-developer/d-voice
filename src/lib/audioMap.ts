@@ -9,7 +9,7 @@ class AudioMap {
   constructor() {}
 
   async set(sessionId: string, buffer: Buffer, duration: number) {
-    const targetChunkDuration = 1.3; // seconds per chunk
+    const targetChunkDuration = 2; // seconds per chunk
     const amount = Math.max(1, Math.ceil(duration / targetChunkDuration));
 
     const buffers = await this.divideIntoEqualParts(buffer, amount);
@@ -35,7 +35,7 @@ class AudioMap {
     setTimeout(() => {
       delete this.timeOuts[sessionId];
       delete this.chunkCollection[sessionId];
-    }, sessionTime);
+    }, sessionTime * 1000);
   }
 
   private async divideIntoEqualParts(
