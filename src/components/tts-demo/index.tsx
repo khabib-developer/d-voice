@@ -12,12 +12,11 @@ import {
   SelectValue,
 } from "@/z_shared/ui/select";
 import { useTranslations } from "next-intl";
-import { ChangeEvent, MouseEvent, useEffect } from "react";
+import { ChangeEvent, useEffect } from "react";
 import { FaPlay } from "react-icons/fa";
 import { ClipLoader } from "react-spinners";
 import { FaPause } from "react-icons/fa6";
 import { useTheme } from "next-themes";
-import DRMAudioPlayer from "../audioPlayer/DRMAudioPlayer";
 import { Button } from "@/z_shared/ui/Buttons";
 
 type props = {
