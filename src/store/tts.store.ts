@@ -93,7 +93,6 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     const audioCtx = new AudioContext();
     set({
       ctx: audioCtx,
-      loading: false,
       isPlaying: false,
       index: 0,
       chunkIndex: 0,
@@ -164,6 +163,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     // Add to sourceNodes array (in case you want to stop everything later)
     set({
       isPlaying: true,
+      loading: false,
       // Update nextPlayTime to be “end of this chunk”
       nextPlayTime: startAt + buffer.duration,
     });
