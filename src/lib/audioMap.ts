@@ -12,8 +12,6 @@ class AudioMap {
     const targetChunkDuration = 0.4; // seconds per chunk
     const amount = Math.max(1, Math.ceil(duration / targetChunkDuration));
 
-    console.log(amount);
-
     const buffers = await this.divideIntoEqualParts(buffer, amount);
 
     this.chunkCollection[sessionId] = new AudioChunk(buffers, duration);
@@ -77,10 +75,6 @@ class AudioMap {
 
       // Concatenate header + PCM
       const fullWavChunk = Buffer.concat([header, chunkData]);
-
-      // Optional: write to disk (for debugging), then push into parts[]
-      const filePath = path.join(__dirname, `chunk-${i}.wav`);
-      await fs.writeFile(filePath, fullWavChunk);
 
       parts.push(fullWavChunk);
       offset = alignedEnd;
