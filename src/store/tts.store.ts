@@ -2,30 +2,38 @@ import { defaultText } from "@/z_shared/constants";
 import { ITTSStore } from "@/z_shared/types";
 import { create } from "zustand";
 
+import initWasm, {
+  base64_decode,
+  buffer_decode,
+} from "../../public/wasm/wasm_decryptor";
+
+const development = process.env.NODE_ENV === "development";
+
 export const useTTSStore = create<ITTSStore>((set, get) => ({
+  // ─────────────────────────────────────────────────────────────
+  // State
+  // ─────────────────────────────────────────────────────────────
   loading: false,
   isPlaying: false,
   text: defaultText,
   model: "",
-  requested: false,
   ctx: null,
-  reader: null,
-
-  totalDuration: 0,
-  currentTime: 0,
-  timerId: null,
-  startTimestamp: 0,
-
-  fullBuffer: null,
-
-  limit: false,
-  setLimit(limit) {
-    set({ limit });
-  },
-
+  index: 0,
+  chunkIndex: 0,
+  max: 0,
+  nextPlayTime: 0,
   recaptchaToken: null,
+  limit: false,
+  mask: null,
+  wasmReady: false,
+  // ─────────────────────────────────────────────────────────────
+  // Simple Setters
+  // ─────────────────────────────────────────────────────────────
   setRecaptchaToken(token) {
     set({ recaptchaToken: token });
+  },
+  setLimit(limit) {
+    set({ limit });
   },
 
   async getCaptchaToken() {
@@ -43,184 +51,135 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   },
 
   setModel(model) {
-    set({ model, requested: false });
+    set({ model });
   },
   setText(text) {
-    set({ text, requested: false });
+    set({ text });
   },
 
+  // ─────────────────────────────────────────────────────────────
+  // 1) sendText: fire off the TTS request, get `amount`, reset state
+  // ─────────────────────────────────────────────────────────────
   async sendText() {
     const { text, model, loading, getCaptchaToken } = get();
     if (loading) return;
 
     set({ loading: true });
-    const recaptchaToken = await getCaptchaToken();
-
+    const recaptchaToken = development ? "" : await getCaptchaToken();
     const response = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, text, recaptchaToken }),
     });
-    if (!response.ok) {
-      set({ loading: false });
-      console.error("TTS errored:", await response.text());
+
+    if (response.status === 429) {
+      set({ limit: true, loading: false });
       return;
     }
 
-    const { audio: base64 } = await response.json();
+    if (!response.ok || !response.body) {
+      set({ loading: false });
+      return;
+    }
 
-    // build data URI
-    // if your API is MP3, use audio/mpeg; if WAV, use audio/wav
-    const mime = "audio/mpeg";
-    const dataUrl = `data:${mime};base64,${base64}`;
+    // We expect JSON: { amount: number }
+    const { amount, mask, duration } = (await response.json()) as {
+      amount: number;
+      mask: string;
+      duration: number;
+    };
 
-    // play it
-    const audio = new Audio(dataUrl);
-    audio.autoplay = true;
-    audio.addEventListener("playing", () => {
-      set({ isPlaying: true, loading: false });
-    });
-    audio.addEventListener("ended", get().onAudioFinish);
-  },
-
-  // helper to play merged fullBuffer from an offset
-  playFullBuffer(offset: number) {
-    const { fullBuffer, timerId } = get();
-    if (!fullBuffer) return;
-
-    // clean existing
-    if (timerId) cancelAnimationFrame(timerId);
-    const oldCtx = get().ctx;
-    if (oldCtx) oldCtx.close();
-
-    // new context & source
+    // Create a fresh AudioContext and reset all playback‐related state:
     const audioCtx = new AudioContext();
-    const source = audioCtx.createBufferSource();
-    source.buffer = fullBuffer;
-    source.connect(audioCtx.destination);
-
-    // set state for tracking
-    const startTS = audioCtx.currentTime - offset;
     set({
       ctx: audioCtx,
-      isPlaying: true,
-      startTimestamp: startTS,
-      currentTime: offset,
+      loading: false,
+      isPlaying: false,
+      index: 0,
+      chunkIndex: 0,
+      max: amount,
+      nextPlayTime: 0,
+      mask: base64_decode(mask),
     });
 
-    // start playback
-    source.start(0, offset);
-    source.addEventListener("ended", get().onAudioFinish);
-
-    // kick off tick
-    get().tick();
+    // Immediately begin fetching + decoding chunk #0
+    get().getChunks();
   },
 
-  seekTo(seconds: number) {
-    get().playFullBuffer(seconds);
-  },
+  // ─────────────────────────────────────────────────────────────
+  // 2) getChunks: fetch the next chunk, decode it, schedule playback
+  // ─────────────────────────────────────────────────────────────
+  async getChunks() {
+    const { chunkIndex, max, ctx, mask } = get();
+    if (!ctx || !mask) return;
+    if (chunkIndex >= max) return;
 
-  onAudioFinish() {
-    const { timerId, ctx } = get();
-    if (timerId) cancelAnimationFrame(timerId);
-    if (ctx) ctx.close();
-    set({ isPlaying: false, ctx: null });
-  },
+    try {
+      // Fetch the next TTS chunk from your endpoint:
+      const response = await fetch("/api/tts");
+      if (!response.ok || !response.body) {
+        return;
+      }
+      const scrambled = await response.arrayBuffer();
 
-  tick() {
-    const { ctx, startTimestamp, isPlaying } = get();
-    if (!ctx) return;
-    const now = ctx.currentTime - startTimestamp;
-    set({ currentTime: now });
-    if (isPlaying) {
-      const id = requestAnimationFrame(get().tick);
-      set({ timerId: id });
+      const scrambledU8 = new Uint8Array(scrambled);
+
+      // 2) Un-XOR it using our mask:
+      const unscrambledU8 = buffer_decode(scrambledU8, mask!);
+
+      const rawBuffer = unscrambledU8.buffer;
+
+      // 3) Decode the real WAV chunk:
+      const audioBuffer = await ctx.decodeAudioData(rawBuffer as any);
+
+      // Increment chunkIndex so we know how many we've processed
+      set({ chunkIndex: chunkIndex + 1 });
+
+      // Schedule this chunk immediately
+      get().connectAndPlay(audioBuffer);
+    } catch (err) {
+      console.error("Error in getChunks:", err);
     }
   },
+
+  // ─────────────────────────────────────────────────────────────
+  // 3) connectAndPlay: schedule each decoded AudioBuffer exactly at nextPlayTime
+  // ─────────────────────────────────────────────────────────────
+  connectAndPlay(buffer) {
+    const { ctx, nextPlayTime, chunkIndex, max } = get();
+    if (!ctx) return;
+
+    // Create a new BufferSource for this chunk
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+
+    // Determine when to start: either nextPlayTime (if still in future) or “right now”
+    const now = ctx.currentTime;
+    const startAt = nextPlayTime > now ? nextPlayTime : now;
+
+    // Schedule the chunk at exactly startAt
+    source.start(startAt);
+
+    // Add to sourceNodes array (in case you want to stop everything later)
+    set({
+      isPlaying: true,
+      // Update nextPlayTime to be “end of this chunk”
+      nextPlayTime: startAt + buffer.duration,
+    });
+
+    // As soon as we schedule chunk N, begin fetching + decoding chunk N+1 (if any left)
+    if (chunkIndex < max) {
+      get().getChunks();
+    } else {
+      source.addEventListener("ended", () => {
+        set({ isPlaying: false });
+      });
+    }
+  },
+
+  async loadWasm() {
+    await initWasm({ wasmUrl: "/wasm/wasm_decryptor_bg.wasm" });
+    set({ wasmReady: true });
+  },
 }));
-
-// const {
-//   text,
-//   model,
-//   requested,
-//   fullBuffer,
-//   ctx,
-//   loading,
-//   tick,
-//   getCaptchaToken,
-// } = get();
-
-// let audioCtx = ctx;
-// if (!audioCtx || audioCtx.state === "closed") {
-//   audioCtx = new AudioContext();
-// }
-
-// // // Prevent duplicate requests
-// // if (loading) return;
-
-// // // 1) If audio is already loaded (requested) then just play or resume
-// // if (requested && fullBuffer) {
-// //   // if context exists, toggle pause/resume
-// //   if (ctx) {
-// //     if (get().isPlaying) {
-// //       await ctx.suspend();
-// //       if (get().timerId) cancelAnimationFrame(get().timerId!);
-// //       set({ isPlaying: false, loading: false });
-// //     } else {
-// //       await ctx.resume();
-// //       set({ isPlaying: true, loading: false });
-// //       tick();
-// //     }
-// //   } else {
-// //     // no context: first playback of stored buffer
-// //     get().playFullBuffer(0);
-// //   }
-// //   return;
-// // }
-
-// // // 2) First-time fetch and buffer
-// // if (!text || !model) return;
-// // set({ loading: true });
-
-// // const recaptchaToken = await getCaptchaToken();
-
-// // const res = await fetch("/api/tts", {
-// //   method: "POST",
-// //   headers: { "Content-Type": "application/json" },
-// //   body: JSON.stringify({ model, text, recaptchaToken }),
-// // });
-// // if (res.status === 429) {
-// //   set({ loading: false, limit: true });
-// //   return;
-// // }
-// // if (res.status !== 200 || !res.body) {
-// //   set({ loading: false });
-// //   return;
-// // }
-
-// // const reader = res.body.getReader();
-// // set({ requested: true });
-
-// // // gather all chunks
-// // const chunks: Uint8Array[] = [];
-// // let length = 0;
-// // while (true) {
-// //   const { done, value } = await reader.read();
-// //   if (done) break;
-// //   chunks.push(value);
-// //   length += value.length;
-// // }
-
-// // // concatenate and decode
-// // const bufferData = new Uint8Array(length);
-// // let offset = 0;
-// // for (const chunk of chunks) {
-// //   bufferData.set(chunk, offset);
-// //   offset += chunk.length;
-// // }
-// // const decoded = await audioCtx.decodeAudioData(bufferData.buffer);
-// // set({ fullBuffer: decoded, totalDuration: decoded.duration });
-
-// // // clear loading and play
-// // set({ loading: false });
-// // get().playFullBuffer(0);

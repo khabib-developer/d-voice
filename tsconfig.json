@@ -29,5 +29,6 @@
     "mdx-components.js",
     "mdx-comopnents.js"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "typeRoots": ["./types", "./node_modules/@types"]
 }

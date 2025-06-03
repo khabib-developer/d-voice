@@ -12,17 +12,13 @@ import {
   SelectValue,
 } from "@/z_shared/ui/select";
 import { useTranslations } from "next-intl";
-import {
-  ChangeEvent,
-  MouseEvent,
-  MouseEventHandler,
-  useEffect,
-  useState,
-} from "react";
+import { ChangeEvent, MouseEvent, useEffect } from "react";
 import { FaPlay } from "react-icons/fa";
 import { ClipLoader } from "react-spinners";
 import { FaPause } from "react-icons/fa6";
 import { useTheme } from "next-themes";
+import DRMAudioPlayer from "../audioPlayer/DRMAudioPlayer";
+import { Button } from "@/z_shared/ui/Buttons";
 
 type props = {
   models: string[];
@@ -37,15 +33,21 @@ export const TTSDemo = ({ models }: props) => {
     isPlaying,
     model,
     setModel,
-    currentTime,
-    totalDuration,
-    requested,
-    seekTo,
+    // currentTime,
+    // totalDuration,
+    // requested,
+    // seekTo,
+    wasmReady,
+    loadWasm,
   } = useTTSStore();
 
-  const progress = totalDuration
-    ? Math.round(Math.min((currentTime / totalDuration) * 100, 100))
-    : 0;
+  // const progress = totalDuration
+  //   ? Math.round(Math.min((currentTime / totalDuration) * 100, 100))
+  //   : 0;
+
+  useEffect(() => {
+    loadWasm();
+  }, []);
 
   useEffect(() => {
     if (models.length) setModel(models[0]);
@@ -55,15 +57,15 @@ export const TTSDemo = ({ models }: props) => {
   };
   const t = useTranslations("main");
 
-  const handleSeek = (event: MouseEvent<HTMLDivElement>) => {
-    if (!totalDuration) return;
-    const latency = 0.01;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const pct = clickX / rect.width;
-    const targetSec = (pct - latency) * totalDuration;
-    seekTo(targetSec);
-  };
+  // const handleSeek = (event: MouseEvent<HTMLDivElement>) => {
+  //   if (!totalDuration) return;
+  //   const latency = 0.01;
+  //   const rect = event.currentTarget.getBoundingClientRect();
+  //   const clickX = event.clientX - rect.left;
+  //   const pct = clickX / rect.width;
+  //   const targetSec = (pct - latency) * totalDuration;
+  //   seekTo(targetSec);
+  // };
 
   const { resolvedTheme } = useTheme();
 
@@ -75,11 +77,11 @@ export const TTSDemo = ({ models }: props) => {
         className="h-[168px] lg:text-xl sm:text-sm text-xs dark:bg-black/20 bg-white/5 resize-none px-0 py-4 w-full  border-none outline-none"
       ></textarea>
       <div
-        onClick={handleSeek}
+        // onClick={handleSeek}
         className="w-full h-[4px] bg-zinc-200 dark:bg-zinc-800 rounded-full duration relative cursor-pointer"
       >
         <div
-          style={{ width: `${progress}%` }}
+          // style={{ width: `${progress}%` }}
           className={`absolute rounded-full transition-[width] duration-200 ease-linear dark:bg-white bg-black h-[4px]`}
         ></div>
       </div>
@@ -103,15 +105,17 @@ export const TTSDemo = ({ models }: props) => {
           <span className="font-light text-xs md:text-md">
             {text.length} / 200
           </span>
-          <div
+          <Button
             onClick={sendText}
-            className={`md:w-[36px] md:h-[36px] w-[28px] h-[28px] rounded-full transition-all  ${
+            aria-disabled
+            className={`md:w-[36px] md:h-[36px] w-[28px] h-[28px] rounded-full transition-all !p-0 ${
               !Boolean(model)
                 ? "bg-neutral-500 dark:bg-neutral-500"
-                : requested
+                : false
                 ? "bg-cyan-700 dark:bg-cyan-200"
                 : ""
             } bg-black dark:bg-white flex justify-center items-center cursor-pointer`}
+            disabled={!wasmReady || !model}
           >
             {loading ? (
               <ClipLoader
@@ -123,7 +127,7 @@ export const TTSDemo = ({ models }: props) => {
             ) : (
               <FaPlay className="text-white dark:text-black ml-1 text-xs md:text-md" />
             )}
-          </div>
+          </Button>
         </div>
       </div>
     </div>

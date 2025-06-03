@@ -1,8 +1,12 @@
-import { isRateLimited } from "@/lib/rateLimiter";
 import axios from "axios";
 import https from "https";
 import { cookies } from "next/headers";
-import { v4 as uuidv4 } from "uuid";
+import { audioMap } from "@/lib/audioMap";
+import { randomBytes } from "crypto";
+import { maskStore, xorBuffer } from "@/lib/mask";
+import { checkCaptcha } from "@/lib/captcha";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { getWavDuration } from "@/lib/duration";
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
@@ -11,7 +15,7 @@ const development = process.env.NODE_ENV === "development";
 
 export async function POST(request: Request) {
   try {
-    const limit = checkRateLimit(request);
+    const [sessionId, limit] = checkRateLimit(request);
 
     if (limit)
       return new Response(
@@ -24,8 +28,6 @@ export async function POST(request: Request) {
 
     const recaptchaData = await checkCaptcha(recaptchaToken);
 
-    console.log(recaptchaData);
-
     if ((!recaptchaData.success || recaptchaData.score < 0.5) && !development) {
       return new Response(JSON.stringify({ error: "reCAPTCHA failed" }), {
         status: 403,
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const format = "MP3";
+    const format = "wav";
 
     const response = await axios.post(
       process.env.TTS_API!,
@@ -47,14 +49,30 @@ export async function POST(request: Request) {
       }
     );
 
-    const b64 = Buffer.from(response.data).toString("base64");
+    const newMask = randomBytes(16);
+    maskStore[String(sessionId)] = { mask: newMask };
 
-    return new Response(JSON.stringify({ audio: b64 }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const audioBuffer = Buffer.from(response.data);
+
+    const data = await audioMap.set(
+      String(sessionId),
+      audioBuffer,
+      getWavDuration(audioBuffer)
+    );
+
+    return new Response(
+      JSON.stringify({
+        amount: data.amount,
+        duration: data.duration,
+        mask: newMask.toString("base64"),
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("TTS request failed:", error.message);
     return new Response(JSON.stringify({ error: "TTS API failed" }), {
@@ -66,43 +84,55 @@ export async function POST(request: Request) {
   }
 }
 
-function checkRateLimit(request: Request) {
-  const cookieStore = cookies();
-  let sessionId = cookieStore.get("sessionId")?.value;
-  if (!sessionId) {
-    sessionId = uuidv4();
-    cookieStore.set({
-      name: "sessionId",
-      value: sessionId,
-      httpOnly: true,
-      path: "/",
-      maxAge: 60 * 60 * 24, // 1 day
+export async function GET(request: Request) {
+  try {
+    const cookieStore = cookies();
+
+    let sessionId = cookieStore.get("sessionId")?.value;
+
+    if (!sessionId) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    const info = maskStore[sessionId];
+    if (!info) {
+      // (Maybe the session expired or someone tried to call GET before POST.)
+      return new Response(JSON.stringify({ error: "bad request" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const data = audioMap.get(sessionId) as Buffer;
+
+    if (!data) {
+      return new Response(JSON.stringify({ error: "wrong" }), {
+        status: 404,
+        headers: {
+          "Content-Length": "application/json",
+        },
+      });
+    }
+
+    const { mask } = info;
+
+    // 3) XOR the chunk with that mask to “scramble” it:
+    const scrambled = xorBuffer(data, mask);
+
+    return new Response(scrambled, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Length": scrambled.byteLength.toString(),
+      },
+    });
+  } catch (error: any) {
+    console.error("TTS request failed:", error.message);
+    return new Response(JSON.stringify({ error: "TTS API failed" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
   }
-
-  // 2. --- Client IP ---
-  const xff = request.headers.get("x-forwarded-for") || "";
-  const clientIp = xff.split(",")[0].trim() || "unknown";
-  // 3. --- Rate limiting per `${ip}:${sessionId}` ---
-  return isRateLimited(sessionId, clientIp);
-}
-
-async function checkCaptcha(recaptchaToken: string) {
-  // 1. Verify reCAPTCHA
-  const recaptchaRes = await fetch(
-    `https://www.google.com/recaptcha/api/siteverify`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        secret: process.env.RECAPTCHA_SECRET_KEY!,
-        response: recaptchaToken,
-      }),
-    }
-  );
-
-  const recaptchaData = await recaptchaRes.json();
-  return recaptchaData;
 }

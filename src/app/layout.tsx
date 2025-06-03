@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { RootLayoutProps } from "@/z_shared/types";
 import { MobileNav } from "@/layout/header/mobile-nav";
 import Script from "next/script";
+import { DevToolsChecker } from "@/components/devtoolsChecker";
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           >
             {children}
             <MobileNav />
+            <DevToolsChecker />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
