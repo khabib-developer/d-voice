@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     const info = maskStore[sessionId];
     if (!info) {
       // (Maybe the session expired or someone tried to call GET before POST.)
-      return new Response(JSON.stringify({ error: "bad request" }), {
+      return new Response(JSON.stringify({ error: "bad-request" }), {
         status: 403,
         headers: { "Content-Type": "application/json" },
       });
