@@ -29,6 +29,9 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   downloaded: 0,
   duration: 0,
   progress: 0,
+  requested: false,
+  audioBuffers: [],
+  playStartTime: 0,
   // ─────────────────────────────────────────────────────────────
   // Simple Setters
   // ─────────────────────────────────────────────────────────────
@@ -38,7 +41,15 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   setLimit(limit) {
     set({ limit });
   },
-
+  setModel(model) {
+    set({ model });
+  },
+  setText(text) {
+    set({ text, requested: false });
+  },
+  // ─────────────────────────────────────────────────────────────
+  // Google captcha
+  // ─────────────────────────────────────────────────────────────
   async getCaptchaToken() {
     return new Promise<string>((resolve) => {
       if ((window as any).grecaptcha) {
@@ -53,25 +64,40 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     });
   },
 
-  setModel(model) {
-    set({ model });
-  },
-  setText(text) {
-    set({ text });
-  },
-
   // ─────────────────────────────────────────────────────────────
   // 1) sendText: fire off the TTS request, get `amount`, reset state
   // ─────────────────────────────────────────────────────────────
   async sendText() {
-    const { text, model, loading, getCaptchaToken, isPlaying } = get();
+    const {
+      text,
+      model,
+      loading,
+      getCaptchaToken,
+      isPlaying,
+      ctx,
+      chunkIndex,
+      requested,
+      index,
+      max,
+    } = get();
     if (loading) return;
 
-    if (isPlaying) {
-      const { ctx } = get();
-      if (!ctx) return;
+    if (isPlaying && ctx) {
       ctx.suspend();
       set({ isPlaying: false });
+      return;
+    }
+
+    if (ctx && !isPlaying && chunkIndex > 0 && index < max && requested) {
+      // Just resume playback without refetching
+      await ctx.resume();
+      set({ isPlaying: true });
+      get().trackProgress();
+      return;
+    }
+
+    if (ctx && !isPlaying && index >= max && requested) {
+      get().replay();
 
       return;
     }
@@ -112,6 +138,10 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       nextPlayTime: 0,
       mask: base64_decode(mask),
       duration,
+      downloaded: 0,
+      progress: 0,
+      audioBuffers: [],
+      playStartTime: audioCtx.currentTime,
     });
 
     // Immediately begin fetching + decoding chunk #0
@@ -122,7 +152,8 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   // 2) getChunks: fetch the next chunk, decode it, schedule playback
   // ─────────────────────────────────────────────────────────────
   async getChunks() {
-    const { chunkIndex, max, ctx, mask, downloaded, duration } = get();
+    const { chunkIndex, max, ctx, mask, downloaded, duration, audioBuffers } =
+      get();
     if (!ctx || !mask) return;
     if (chunkIndex >= max) return;
 
@@ -148,6 +179,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
 
       // Increment chunkIndex so we know how many we've processed
       set({
+        audioBuffers: [...audioBuffers, audioBuffer],
         chunkIndex: chunkIndex + 1,
         downloaded: downloaded + (chunkDuration * 100) / duration,
       });
@@ -191,9 +223,13 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     // As soon as we schedule chunk N, begin fetching + decoding chunk N+1 (if any left)
     if (chunkIndex < max) {
       get().getChunks();
-    } else {
       source.addEventListener("ended", () => {
-        set({ isPlaying: false });
+        set((state) => ({ index: state.index + 1 }));
+      });
+    } else {
+      set({ requested: true });
+      source.addEventListener("ended", () => {
+        set({ isPlaying: false, index: max });
       });
     }
   },
@@ -203,20 +239,63 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     set({ wasmReady: true });
   },
 
+  replay() {
+    const { ctx, audioBuffers } = get();
+    if (!ctx) return;
+    if (audioBuffers.length === 0) return;
+
+    // Reset progress‐related state
+    set({
+      isPlaying: false,
+      index: 0,
+      nextPlayTime: 0,
+      progress: 0,
+      downloaded: 100,
+      playStartTime: ctx.currentTime,
+    });
+
+    // Use current AudioContext time as the baseline
+    const now = ctx.currentTime;
+    let scheduleTime = now;
+
+    // Schedule each buffer back-to-back
+    audioBuffers.forEach((buffer, i) => {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+
+      source.start(scheduleTime);
+      // Once the final chunk ends, flip isPlaying to false:
+      if (i === audioBuffers.length - 1) {
+        source.addEventListener("ended", () => {
+          set({ isPlaying: false });
+        });
+      }
+      scheduleTime += buffer.duration;
+    });
+
+    // Mark as playing and start tracking progress
+    set({
+      isPlaying: true,
+      nextPlayTime: scheduleTime,
+      // Since everything is in memory, `downloaded` can remain at 100%
+    });
+    get().trackProgress();
+  },
+
   trackProgress() {
     const tick = () => {
-      const { ctx, duration, isPlaying } = get();
+      const { ctx, duration, isPlaying, playStartTime } = get();
       if (!ctx || !duration || !isPlaying) return;
 
-      const currentTime = ctx.currentTime;
-      const percent = Math.min((currentTime / duration) * 100, 100);
+      const elapsed = ctx.currentTime - playStartTime;
+      const percent = Math.min((elapsed / duration) * 100, 100);
       set({ progress: percent });
 
       if (percent < 100 && isPlaying) {
         requestAnimationFrame(tick);
       }
     };
-
     requestAnimationFrame(tick);
   },
 }));

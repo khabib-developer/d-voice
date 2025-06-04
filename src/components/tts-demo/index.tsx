@@ -35,7 +35,7 @@ export const TTSDemo = ({ models }: props) => {
     setModel,
     // currentTime,
     // totalDuration,
-    // requested,
+    requested,
     // seekTo,
     wasmReady,
     loadWasm,
@@ -68,7 +68,6 @@ export const TTSDemo = ({ models }: props) => {
   // };
 
   const { resolvedTheme } = useTheme();
-
   return (
     <div className="w-full border-zinc-200 dark:border-zinc-800 dark:bg-black/80 bg-white/95 shadow-sm border-[1px] px-5 rounded-2xl">
       <textarea
@@ -104,8 +103,8 @@ export const TTSDemo = ({ models }: props) => {
             className={`md:w-[36px] md:h-[36px] w-[28px] h-[28px] rounded-full transition-all !p-0 ${
               !Boolean(model)
                 ? "bg-neutral-500 dark:bg-neutral-500"
-                : false
-                ? "bg-cyan-700 dark:bg-cyan-200"
+                : requested
+                ? "!bg-indigo-950 dark:!bg-indigo-100"
                 : ""
             } bg-black dark:bg-white flex justify-center items-center cursor-pointer`}
             disabled={!wasmReady || !model || loading}

@@ -30,6 +30,9 @@ export interface ITTSStore {
   downloaded: number;
   duration: number;
   progress: number;
+  requested: boolean;
+  audioBuffers: AudioBuffer[];
+  playStartTime: number;
 
   loadWasm: () => void;
   setRecaptchaToken: (token: string) => void;
@@ -41,6 +44,8 @@ export interface ITTSStore {
   sendText: () => Promise<void>;
   getChunks: () => Promise<void>;
   connectAndPlay: (buffer: AudioBuffer) => void;
+
+  replay: () => void;
   trackProgress: () => void;
 }
 

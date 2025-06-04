@@ -49,8 +49,7 @@ export async function POST(request: Request) {
       }
     );
 
-    const newMask = randomBytes(16);
-    maskStore[String(sessionId)] = { mask: newMask };
+    const newMask = maskStore.set(String(sessionId));
 
     const audioBuffer = Buffer.from(response.data);
 
@@ -64,7 +63,7 @@ export async function POST(request: Request) {
       JSON.stringify({
         amount: data.amount,
         duration: data.duration,
-        mask: newMask.toString("base64"),
+        mask: newMask,
       }),
       {
         status: 200,
@@ -96,8 +95,8 @@ export async function GET(request: Request) {
 
     // console.log(sessionId, maskStore[sessionId]);
 
-    const info = maskStore[sessionId];
-    if (!info) {
+    const mask = maskStore.get(sessionId);
+    if (!mask) {
       // (Maybe the session expired or someone tried to call GET before POST.)
       return new Response(JSON.stringify({ error: "bad-request" }), {
         status: 403,
@@ -115,8 +114,6 @@ export async function GET(request: Request) {
         },
       });
     }
-
-    const { mask } = info;
 
     // 3) XOR the chunk with that mask to “scramble” it:
     const scrambled = xorBuffer(data, mask);
