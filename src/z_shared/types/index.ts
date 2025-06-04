@@ -27,6 +27,9 @@ export interface ITTSStore {
   limit: boolean;
   mask: Uint8Array | null;
   wasmReady: boolean;
+  downloaded: number;
+  duration: number;
+  progress: number;
 
   loadWasm: () => void;
   setRecaptchaToken: (token: string) => void;
@@ -38,6 +41,7 @@ export interface ITTSStore {
   sendText: () => Promise<void>;
   getChunks: () => Promise<void>;
   connectAndPlay: (buffer: AudioBuffer) => void;
+  trackProgress: () => void;
 }
 
 export interface RootLayoutProps {

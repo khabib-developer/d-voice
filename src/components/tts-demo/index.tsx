@@ -18,6 +18,7 @@ import { ClipLoader } from "react-spinners";
 import { FaPause } from "react-icons/fa6";
 import { useTheme } from "next-themes";
 import { Button } from "@/z_shared/ui/Buttons";
+import { ProgressBar } from "./progressBar";
 
 type props = {
   models: string[];
@@ -75,15 +76,8 @@ export const TTSDemo = ({ models }: props) => {
         onChange={handleChange}
         className="h-[168px] lg:text-xl sm:text-sm text-xs dark:bg-black/20 bg-white/5 resize-none px-0 py-4 w-full  border-none outline-none"
       ></textarea>
-      <div
-        // onClick={handleSeek}
-        className="w-full h-[4px] bg-zinc-200 dark:bg-zinc-800 rounded-full duration relative cursor-pointer"
-      >
-        <div
-          // style={{ width: `${progress}%` }}
-          className={`absolute rounded-full transition-[width] duration-200 ease-linear dark:bg-white bg-black h-[4px]`}
-        ></div>
-      </div>
+
+      <ProgressBar />
       <div className="py-4 flex justify-between items-center">
         <Select onValueChange={setModel} value={model}>
           <SelectTrigger className="md:w-[180px] w-[100px] rounded-full dark:border-zinc-900">
@@ -114,7 +108,7 @@ export const TTSDemo = ({ models }: props) => {
                 ? "bg-cyan-700 dark:bg-cyan-200"
                 : ""
             } bg-black dark:bg-white flex justify-center items-center cursor-pointer`}
-            disabled={!wasmReady || !model}
+            disabled={!wasmReady || !model || loading}
           >
             {loading ? (
               <ClipLoader

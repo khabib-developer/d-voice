@@ -26,6 +26,9 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   limit: false,
   mask: null,
   wasmReady: false,
+  downloaded: 0,
+  duration: 0,
+  progress: 0,
   // ─────────────────────────────────────────────────────────────
   // Simple Setters
   // ─────────────────────────────────────────────────────────────
@@ -61,8 +64,17 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   // 1) sendText: fire off the TTS request, get `amount`, reset state
   // ─────────────────────────────────────────────────────────────
   async sendText() {
-    const { text, model, loading, getCaptchaToken } = get();
+    const { text, model, loading, getCaptchaToken, isPlaying } = get();
     if (loading) return;
+
+    if (isPlaying) {
+      const { ctx } = get();
+      if (!ctx) return;
+      ctx.suspend();
+      set({ isPlaying: false });
+
+      return;
+    }
 
     set({ loading: true });
     const recaptchaToken = development ? "" : await getCaptchaToken();
@@ -99,6 +111,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       max: amount,
       nextPlayTime: 0,
       mask: base64_decode(mask),
+      duration,
     });
 
     // Immediately begin fetching + decoding chunk #0
@@ -109,7 +122,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   // 2) getChunks: fetch the next chunk, decode it, schedule playback
   // ─────────────────────────────────────────────────────────────
   async getChunks() {
-    const { chunkIndex, max, ctx, mask } = get();
+    const { chunkIndex, max, ctx, mask, downloaded, duration } = get();
     if (!ctx || !mask) return;
     if (chunkIndex >= max) return;
 
@@ -131,8 +144,13 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       // 3) Decode the real WAV chunk:
       const audioBuffer = await ctx.decodeAudioData(rawBuffer as any);
 
+      const chunkDuration = audioBuffer.length / audioBuffer.sampleRate;
+
       // Increment chunkIndex so we know how many we've processed
-      set({ chunkIndex: chunkIndex + 1 });
+      set({
+        chunkIndex: chunkIndex + 1,
+        downloaded: downloaded + (chunkDuration * 100) / duration,
+      });
 
       // Schedule this chunk immediately
       get().connectAndPlay(audioBuffer);
@@ -168,6 +186,8 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
       nextPlayTime: startAt + buffer.duration,
     });
 
+    get().trackProgress();
+
     // As soon as we schedule chunk N, begin fetching + decoding chunk N+1 (if any left)
     if (chunkIndex < max) {
       get().getChunks();
@@ -181,5 +201,22 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   async loadWasm() {
     await initWasm({ wasmUrl: "/wasm/wasm_decryptor_bg.wasm" });
     set({ wasmReady: true });
+  },
+
+  trackProgress() {
+    const tick = () => {
+      const { ctx, duration, isPlaying } = get();
+      if (!ctx || !duration || !isPlaying) return;
+
+      const currentTime = ctx.currentTime;
+      const percent = Math.min((currentTime / duration) * 100, 100);
+      set({ progress: percent });
+
+      if (percent < 100 && isPlaying) {
+        requestAnimationFrame(tick);
+      }
+    };
+
+    requestAnimationFrame(tick);
   },
 }));
