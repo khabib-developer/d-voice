@@ -43,7 +43,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     set({ limit });
   },
   setModel(model) {
-    set({ model });
+    set({ model, requested: false, audio: null });
   },
   setText(text) {
     set({ text, requested: false, audio: null });

@@ -7,7 +7,7 @@ import Link from "next/link";
 export const Footer = () => {
   const t = useTranslations("footer");
   return (
-    <div className="w-full fixed z-50 bottom-0 backdrop-blur-md ">
+    <div className="w-full fixed z-50 bottom-0 backdrop-blur-md h-[100px] -mb-[50px]">
       <div className="container h-[50px] justify-between border-t-[1px] dark:border-zinc-800 text-sm flex items-center">
         <div className="flex items-center flex-col md:flex-row">
           <div>
