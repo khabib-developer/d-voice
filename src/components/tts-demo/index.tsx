@@ -41,7 +41,10 @@ export const TTSDemo = ({ models }: props) => {
   } = useTTSStore();
 
   useEffect(() => {
-    if (isMobile) return;
+    if (isMobile) {
+      useTTSStore.setState((state) => ({ wasmReady: true }));
+      return;
+    }
     loadWasm();
   }, [isMobile]);
 
