@@ -33,6 +33,7 @@ export interface ITTSStore {
   requested: boolean;
   audioBuffers: AudioBuffer[];
   playStartTime: number;
+  audio: HTMLAudioElement | null;
 
   loadWasm: () => void;
   setRecaptchaToken: (token: string) => void;
@@ -42,6 +43,9 @@ export interface ITTSStore {
   setText: (text: string) => void;
 
   sendText: () => Promise<void>;
+
+  sendTextMobile: () => Promise<void>;
+
   getChunks: () => Promise<void>;
   connectAndPlay: (buffer: AudioBuffer) => void;
 

@@ -25,6 +25,7 @@ type props = {
 };
 
 export const TTSDemo = ({ models }: props) => {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const {
     text,
     setText,
@@ -33,21 +34,16 @@ export const TTSDemo = ({ models }: props) => {
     isPlaying,
     model,
     setModel,
-    // currentTime,
-    // totalDuration,
     requested,
-    // seekTo,
     wasmReady,
     loadWasm,
+    sendTextMobile,
   } = useTTSStore();
 
-  // const progress = totalDuration
-  //   ? Math.round(Math.min((currentTime / totalDuration) * 100, 100))
-  //   : 0;
-
   useEffect(() => {
+    if (isMobile) return;
     loadWasm();
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     if (models.length) setModel(models[0]);
@@ -56,16 +52,6 @@ export const TTSDemo = ({ models }: props) => {
     if (event.target.value.length <= 200) setText(event.target.value);
   };
   const t = useTranslations("main");
-
-  // const handleSeek = (event: MouseEvent<HTMLDivElement>) => {
-  //   if (!totalDuration) return;
-  //   const latency = 0.01;
-  //   const rect = event.currentTarget.getBoundingClientRect();
-  //   const clickX = event.clientX - rect.left;
-  //   const pct = clickX / rect.width;
-  //   const targetSec = (pct - latency) * totalDuration;
-  //   seekTo(targetSec);
-  // };
 
   const { resolvedTheme } = useTheme();
   return (
@@ -98,7 +84,7 @@ export const TTSDemo = ({ models }: props) => {
             {text.length} / 200
           </span>
           <Button
-            onClick={sendText}
+            onClick={isMobile ? sendTextMobile : sendText}
             aria-disabled
             className={`md:w-[36px] md:h-[36px] w-[28px] h-[28px] rounded-full transition-all !p-0 ${
               !Boolean(model)

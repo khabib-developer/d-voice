@@ -32,6 +32,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
   requested: false,
   audioBuffers: [],
   playStartTime: 0,
+  audio: null,
   // ─────────────────────────────────────────────────────────────
   // Simple Setters
   // ─────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
     set({ model });
   },
   setText(text) {
-    set({ text, requested: false });
+    set({ text, requested: false, audio: null });
   },
   // ─────────────────────────────────────────────────────────────
   // Google captcha
@@ -146,6 +147,67 @@ export const useTTSStore = create<ITTSStore>((set, get) => ({
 
     // Immediately begin fetching + decoding chunk #0
     get().getChunks();
+  },
+
+  async sendTextMobile() {
+    const {
+      text,
+      model,
+      loading,
+      getCaptchaToken,
+      audio: a,
+      isPlaying,
+    } = get();
+
+    if (loading) return;
+
+    if (a) {
+      if (isPlaying) {
+        a.pause();
+        set({ isPlaying: false });
+      } else {
+        a.play();
+        set({ isPlaying: true });
+      }
+
+      return;
+    }
+
+    const audio = new Audio();
+    set({ loading: true, audio });
+
+    const recaptchaToken = development ? "" : await getCaptchaToken();
+    const response = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, text, recaptchaToken }),
+    });
+
+    if (response.status === 429) {
+      set({ limit: true, loading: false });
+      return;
+    }
+
+    if (!response.ok || !response.body) {
+      set({ loading: false });
+      return;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+
+    // 3) Create a blob URL and store it
+    const blob = new Blob([arrayBuffer], { type: "audio/wav" });
+    const url = URL.createObjectURL(blob);
+    audio.src = url;
+    audio.load();
+    set({ downloaded: 100 });
+    audio.play();
+    set({ isPlaying: true, loading: false, progress: 0 });
+    audio.addEventListener("timeupdate", (ev) => {
+      set({ progress: (audio.currentTime / audio.duration) * 100 });
+    });
+    audio.addEventListener("ended", () => {
+      set({ isPlaying: false });
+    });
   },
 
   // ─────────────────────────────────────────────────────────────

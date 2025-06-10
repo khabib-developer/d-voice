@@ -3,10 +3,7 @@ import { useTTSStore } from "@/store/tts.store";
 export const ProgressBar = () => {
   const { downloaded, progress } = useTTSStore();
   return (
-    <div
-      // onClick={handleSeek}
-      className="w-full h-[4px] bg-zinc-200 dark:bg-zinc-800 rounded-full duration relative cursor-pointer"
-    >
+    <div className="w-full h-[4px] bg-zinc-200 dark:bg-zinc-800 rounded-full duration relative ">
       <div
         style={{ width: `${progress}%` }}
         className={`absolute rounded-full transition-[width] duration-200 z-[1] ease-linear dark:bg-white bg-black h-[4px]`}

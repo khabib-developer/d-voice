@@ -7,6 +7,7 @@ import { maskStore, xorBuffer } from "@/lib/mask";
 import { checkCaptcha } from "@/lib/captcha";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getWavDuration } from "@/lib/duration";
+import { isMobile } from "@/lib/mobile";
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
@@ -48,6 +49,16 @@ export async function POST(request: Request) {
         httpsAgent,
       }
     );
+
+    if (isMobile(request) || 1) {
+      return new Response(response.data, {
+        status: 200,
+        headers: {
+          "Content-Type": "audio/wav",
+          "Content-Length": response.data.byteLength.toString(),
+        },
+      });
+    }
 
     const newMask = maskStore.set(String(sessionId));
 
